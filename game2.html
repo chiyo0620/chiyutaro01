@@ -125,8 +125,6 @@
         this.playTone(440, 'sine', 0.1, 0.15);
         setTimeout(() => this.playTone(659.25, 'sine', 0.16, 0.2), 100);
       }
-
-      /* 和太鼓・パワフルなゲームキック音（低音のアタック） */
       playDrumBeat(timeOffset = 0, pitch = 140, duration = 0.22, volume = 0.3) {
         if (this.muted) return;
         this.init();
@@ -145,8 +143,6 @@
           osc.stop(t + duration);
         } catch(e) {}
       }
-
-      /* 明るく華やかなチャイム・ベル音 */
       playSparkleNote(freq, timeOffset = 0, duration = 0.25, volume = 0.12) {
         if (this.muted) return;
         this.init();
@@ -164,42 +160,29 @@
           osc.stop(t + duration);
         } catch(e) {}
       }
-
-      /* 「いざ、勝負！」のワクワクするファンファーレ＆ドラムロール */
       battleRiser() {
         if (this.muted) return;
         this.init();
-
-        // 1. リズミカルなタム・太鼓の連打「ド・ドン！」
         this.playDrumBeat(0.0, 160, 0.15, 0.28);
         this.playDrumBeat(0.09, 190, 0.15, 0.32);
         this.playDrumBeat(0.20, 240, 0.25, 0.4);
-
-        // 2. 明るいメジャースケールの上昇アルペジオ（ド・ミ・ソ・ド）＋キラキラベル
-        const arpeggio = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+        const arpeggio = [523.25, 659.25, 783.99, 1046.5];
         arpeggio.forEach((freq, idx) => {
           this.playSparkleNote(freq, 0.05 + idx * 0.065, 0.35, 0.18);
         });
       }
-
-      /* 「じゃん・けん・ぽん」のパーカッシブで小気味よいウッドブロック＆ポップ音 */
       countdown(step) {
         if (this.muted) return;
         this.init();
         const basePitches = [
-          { wood: 620, pop: 330, vol: 0.22 }, // じゃん
-          { wood: 740, pop: 440, vol: 0.25 }, // けん
-          { wood: 1050, pop: 587, vol: 0.32 } // ぽん！
+          { wood: 620, pop: 330, vol: 0.22 },
+          { wood: 740, pop: 440, vol: 0.25 },
+          { wood: 1050, pop: 587, vol: 0.32 }
         ];
         const cfg = basePitches[step] || basePitches[0];
-        
-        // ウッドブロック風のコキッとしたアタック音
         this.playTone(cfg.wood, 'triangle', 0.09, cfg.vol);
-        // ふくよかなマリンバ/ベルの倍音
         this.playSparkleNote(cfg.pop, 0.01, 0.18, cfg.vol * 0.7);
       }
-
-      /* 激突時のインパクト（心地よいゲームヒット＆パーカッション） */
       clashImpact() {
         if (this.muted) return;
         this.init();
@@ -221,23 +204,22 @@
     const audio = new WebAudioSynth();
   </script>
 
-  <header class="w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 sticky top-0 z-40 flex items-center justify-between">
+  <!-- ヘッダー（戻るリンク設置） -->
+  <header class="w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 py-2.5 sticky top-0 z-40 flex items-center justify-between">
     <div class="flex items-center space-x-2">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-red-500 flex items-center justify-center text-lg shadow-md">
-        ⚔️
-      </div>
+      <a href="index.html" class="px-2.5 py-1.5 rounded-xl bg-pink-500/15 hover:bg-pink-500/25 border border-pink-500/30 text-pink-300 text-xs font-bold transition flex items-center gap-1">
+        <span>‹</span><span class="hidden sm:inline">ゲームセンター</span><span class="sm:hidden">戻る</span>
+      </a>
       <div>
-        <h1 class="text-base sm:text-lg font-black tracking-wider text-white">じゃんけんバトル <span class="text-amber-400">ARENA</span></h1>
-        <p class="text-[10px] text-slate-400 hidden sm:block">Tactical Mind Games & Local Duels</p>
+        <h1 class="text-sm sm:text-base font-black tracking-wider text-white">じゃんけんバトル <span class="text-amber-400">ARENA</span></h1>
       </div>
     </div>
     <div class="flex items-center space-x-2">
-      <button onclick="toggleAudio()" id="soundToggleBtn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 border border-slate-700">
+      <button onclick="toggleAudio()" id="soundToggleBtn" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1 border border-slate-700">
         <span id="soundIcon">🔊</span>
-        <span id="soundText" class="hidden sm:inline">サウンド ON</span>
       </button>
-      <button onclick="navToTitle()" id="homeBtn" class="hidden px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 border border-slate-700">
-        <span>🏠</span><span class="hidden sm:inline">タイトル</span>
+      <button onclick="navToTitle()" id="homeBtn" class="hidden px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1 border border-slate-700">
+        <span>🏠</span><span class="hidden sm:inline">モード選択</span>
       </button>
     </div>
   </header>
@@ -285,11 +267,14 @@
         </button>
       </div>
 
-      <div class="text-[11px] text-slate-500 border-t border-slate-800/80 pt-3">
-        スマホ1台でも安心の伏せ入力 &amp; 画面交代システム完備
+      <div class="pt-2 border-t border-slate-800">
+        <a href="index.html" class="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white py-1 transition">
+          <span>🏠</span> ちゆたろうゲームセンターへ戻る
+        </a>
       </div>
     </div>
 
+    <!-- SCREEN 2: CONFIG -->
     <div id="viewConfig" class="hidden w-full max-w-xl bg-slate-900/95 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-6">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <h3 id="configHeaderTitle" class="text-xl font-bold text-white flex items-center gap-2">
@@ -300,7 +285,6 @@
         </button>
       </div>
 
-      <!-- 2-Player Style Options -->
       <div id="subOption2PWrap" class="space-y-2">
         <label class="text-xs font-bold text-amber-400 tracking-wider">👥 2人対戦のスタイルを選択</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -348,7 +332,6 @@
         </div>
       </div>
 
-      <!-- Match Rules (Rounds / HP) -->
       <div class="space-y-2">
         <label class="text-xs font-bold text-slate-300 tracking-wider">🏆 勝負形式</label>
         <div class="grid grid-cols-3 gap-2">
@@ -397,15 +380,13 @@
         </label>
       </div>
 
-      <!-- Start Match Button -->
       <button onclick="startArenaMatch()" class="w-full py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:opacity-95 active:scale-[0.98] text-slate-950 font-black rounded-2xl shadow-xl shadow-orange-500/20 text-lg tracking-wider transition-all">
         対戦アリーナへ入場！ ⚔️
       </button>
     </div>
 
+    <!-- SCREEN 3: ARENA -->
     <div id="viewArena" class="hidden w-full max-w-2xl flex flex-col justify-between min-h-[580px] sm:min-h-[640px] relative">
-      
-      <!-- Top HUD: Status Bar -->
       <div class="w-full bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-3 sm:p-4 mb-2 shadow-xl">
         <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
           <span id="arenaRuleBadge" class="font-black text-amber-400">3本先取</span>
@@ -413,9 +394,7 @@
           <div id="arenaGimmickTags" class="flex gap-1"></div>
         </div>
 
-        <!-- Player HP or Score Displays -->
         <div class="grid grid-cols-2 gap-4 items-center">
-          <!-- P1 Status -->
           <div class="space-y-1">
             <div class="flex justify-between items-center text-xs sm:text-sm font-bold">
               <span id="labelP1Name" class="text-blue-400 font-black">Player 1</span>
@@ -427,7 +406,6 @@
             <div id="p1DeckBadges" class="hidden flex gap-1 text-[11px] text-slate-400"></div>
           </div>
 
-          <!-- P2 / COM Status -->
           <div class="space-y-1 text-right">
             <div class="flex justify-between items-center text-xs sm:text-sm font-bold flex-row-reverse">
               <span id="labelP2Name" class="text-rose-400 font-black">COM</span>
@@ -442,8 +420,6 @@
       </div>
 
       <div id="battleStage" class="w-full flex-1 flex flex-col items-center justify-center relative py-4 min-h-[220px]">
-        
-        <!-- Center Banner & Dynamic Announcement -->
         <div id="stageBanner" class="text-center transition-all duration-200">
           <div id="stageBannerTitle" class="text-3xl sm:text-4xl font-black text-amber-400 tracking-wider drop-shadow-md">
             手を選んでください
@@ -453,7 +429,6 @@
           </div>
         </div>
 
-        <!-- SPECIAL PASS & PLAY: "いざ、勝負！" TRIGGER BUTTON -->
         <div id="passReadyBattlePrompt" class="hidden w-full max-w-sm flex flex-col items-center justify-center space-y-3 z-30 animate-pop-shake">
           <div class="text-center">
             <span class="inline-block px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
@@ -470,9 +445,7 @@
           </button>
         </div>
 
-        <!-- Revealing Cards (Clash Visuals) -->
         <div id="revealedHandsWrap" class="hidden w-full flex items-center justify-around max-w-md my-4">
-          <!-- P1 Hand -->
           <div class="flex flex-col items-center animate-clash-left">
             <div class="text-xs font-bold text-blue-400 mb-1" id="p1CardPlayerTag">Player 1</div>
             <div id="p1HandBox" class="w-24 h-28 sm:w-28 sm:h-32 rounded-2xl bg-slate-800 border-2 border-blue-400 flex items-center justify-center text-5xl shadow-xl relative">
@@ -482,10 +455,8 @@
             <div id="p1HandText" class="text-sm font-bold mt-2 text-slate-200">グー</div>
           </div>
 
-          <!-- Clash Divider -->
           <div class="text-2xl font-black text-amber-400 italic animate-pulse">VS</div>
 
-          <!-- P2 Hand -->
           <div class="flex flex-col items-center animate-clash-right">
             <div class="text-xs font-bold text-rose-400 mb-1" id="p2CardPlayerTag">COM</div>
             <div id="p2HandBox" class="w-24 h-28 sm:w-28 sm:h-32 rounded-2xl bg-slate-800 border-2 border-rose-400 flex items-center justify-center text-5xl shadow-xl relative">
@@ -496,7 +467,6 @@
           </div>
         </div>
 
-        <!-- Round Outcome Notification Toast -->
         <div id="roundOutcomeBadge" class="hidden mt-2 text-center animate-pop-shake">
           <span id="roundOutcomeMessage" class="px-5 py-2 rounded-full text-base font-black border tracking-wide">
             Player 1 の勝ち！
@@ -505,11 +475,7 @@
       </div>
 
       <div id="arenaControlsWrap" class="w-full space-y-3 relative">
-        
-        <!-- A. STANDARD HAND PANEL (Used by VS COM and Pass & Play turns) -->
         <div id="panelStandard" class="w-full space-y-3">
-          
-          <!-- Pass and Play Indicator & Step Guidance -->
           <div id="passTurnNotice" class="hidden bg-slate-900 border border-amber-500/50 rounded-2xl p-3 text-center">
             <div class="text-xs font-bold text-amber-400 flex items-center justify-center gap-1.5">
               <span>👤</span>
@@ -518,7 +484,6 @@
             </div>
           </div>
 
-          <!-- Skills Selection Bar (When enabled) -->
           <div id="skillBarStandard" class="hidden flex justify-center gap-2">
             <button id="skillShieldBtn" onclick="toggleActiveSkill('shield')" class="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 text-xs font-bold text-slate-300 transition flex items-center gap-1 hover:border-amber-400">
               <span>🛡️ 鉄壁シールド</span>
@@ -530,7 +495,6 @@
             </button>
           </div>
 
-          <!-- 3 Primary Hand Cards -->
           <div class="grid grid-cols-3 gap-2 sm:gap-3">
             <button onclick="pressHandChoice('rock')" id="handBtn-rock" class="group flex flex-col items-center justify-center py-4 sm:py-5 rounded-2xl bg-gradient-to-b from-red-600/20 to-red-950/60 border-2 border-red-500/40 hover:border-red-400 active:scale-95 transition-all shadow-lg">
               <span class="text-4xl sm:text-5xl group-hover:scale-110 transition">✊</span>
@@ -552,9 +516,7 @@
           </div>
         </div>
 
-        <!-- B. SPLIT TOUCH INTERFACE (Face-to-face simultaneous on one screen) -->
         <div id="panelSplitTouch" class="hidden w-full flex flex-col gap-4">
-          <!-- Top Area: Player 2 (Rotated 180 degrees) -->
           <div class="rotate-180 bg-slate-900/90 border border-rose-500/40 rounded-2xl p-3 shadow-inner">
             <div class="flex justify-between items-center mb-2 px-1 text-xs">
               <span class="font-bold text-rose-400">Player 2 (相手側)</span>
@@ -567,7 +529,6 @@
             </div>
           </div>
 
-          <!-- Bottom Area: Player 1 (Normal orientation) -->
           <div class="bg-slate-900/90 border border-blue-500/40 rounded-2xl p-3 shadow-inner">
             <div class="flex justify-between items-center mb-2 px-1 text-xs">
               <span class="font-bold text-blue-400">Player 1 (手前側)</span>
@@ -581,7 +542,6 @@
           </div>
         </div>
 
-        <!-- C. KEYBOARD DUAL CONTROL INTERFACE (PC Keyboard) -->
         <div id="panelKeyboard" class="hidden w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-4 text-center space-y-3">
           <div class="text-xs text-amber-400 font-bold">⌨️ キーボードで同時に伏せ押し！ (相手に見られないよう入力)</div>
           <div class="grid grid-cols-2 gap-3">
@@ -606,7 +566,6 @@
           </div>
         </div>
 
-        <!-- D. PASS & PLAY INTERMISSION OVERLAY (Transition Screen Between P1 and P2) -->
         <div id="passHandoverOverlay" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-md rounded-2xl z-20 flex flex-col items-center justify-center p-6 text-center space-y-4">
           <div class="text-5xl animate-bounce">📱 ➔ 🤝</div>
           <h4 class="text-xl font-black text-white">端末を Player 2 に渡してください</h4>
@@ -618,10 +577,8 @@
             Player 2 準備完了！
           </button>
         </div>
-
       </div>
 
-      <!-- Battle History Log -->
       <div class="w-full mt-3 bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 max-h-24 overflow-y-auto text-xs font-mono">
         <div class="text-[10px] text-slate-500 font-bold mb-1 tracking-wider uppercase">対戦ログ</div>
         <div id="battleHistoryList" class="space-y-1 text-slate-400">
@@ -630,6 +587,7 @@
       </div>
     </div>
 
+    <!-- SCREEN 4: RESULT -->
     <div id="viewResult" class="hidden w-full max-w-md bg-slate-900/95 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-6">
       <div id="resultEmblem" class="text-6xl animate-bounce">🏆</div>
       <div class="space-y-1">
@@ -657,14 +615,18 @@
           再戦する
         </button>
         <button onclick="navToTitle()" class="flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition">
-          タイトルへ
+          モード選択
         </button>
+      </div>
+      <div class="pt-2 border-t border-slate-800">
+        <a href="index.html" class="inline-flex items-center gap-1.5 text-xs text-pink-400 hover:text-pink-300 py-1 transition">
+          <span>‹</span> ちゆたろうゲームセンターへ戻る
+        </a>
       </div>
     </div>
 
   </main>
 
-  <!-- Footer -->
   <footer class="w-full text-center py-2.5 text-[11px] text-slate-600 border-t border-slate-900">
     Tactical Janken ARENA &copy; Local Duels &amp; Predictive AI
   </footer>
@@ -677,14 +639,13 @@
     };
 
     const gameState = {
-      mode: 'two_player', // 'vs_com' | 'two_player'
-      twoPlayerStyle: 'pass_play', // 'pass_play' | 'face_to_face' | 'keyboard'
-      aiDifficulty: 'normal', // 'easy' | 'normal' | 'hard'
-      matchFormat: 'first3', // 'single' | 'first3' | 'hp'
+      mode: 'two_player',
+      twoPlayerStyle: 'pass_play',
+      aiDifficulty: 'normal',
+      matchFormat: 'first3',
       useDeck: false,
       useSkill: false,
 
-      // Runtime Variables
       round: 1,
       inMatch: false,
       isRevealing: false,
@@ -694,19 +655,16 @@
       p2Hp: 3,
       draws: 0,
 
-      // Chosen hands for the round
       p1Hand: null,
       p2Hand: null,
-      p1Skill: null, // 'shield' | 'critical' | null
+      p1Skill: null,
       p2Skill: null,
       p1SkillConsumed: false,
       p2SkillConsumed: false,
 
-      // Decks
       p1Deck: { rock: 2, scissors: 2, paper: 2 },
       p2Deck: { rock: 2, scissors: 2, paper: 2 },
 
-      // AI Tracking (Hard mode)
       userHandHistory: [],
       userTransitions: {
         rock: { rock: 0, scissors: 0, paper: 0 },
@@ -715,8 +673,6 @@
       },
       lastUserChoice: null,
       lastAiChoice: null,
-
-      // Pass and Play Phase: 1 (P1 picking), 2 (P2 picking), 3 (Both picked, awaiting "いざ、勝負！")
       passPhase: 1
     };
 
@@ -745,7 +701,6 @@
     function toggleAudio() {
       audio.muted = !audio.muted;
       document.getElementById('soundIcon').textContent = audio.muted ? '🔇' : '🔊';
-      document.getElementById('soundText').textContent = audio.muted ? 'サウンド OFF' : 'サウンド ON';
     }
 
     function pickMode(mode) {
@@ -821,7 +776,6 @@
       gameState.useDeck = document.getElementById('gimmickDeck').checked;
       gameState.useSkill = document.getElementById('gimmickSkill').checked;
 
-      // Reset Match Variables
       gameState.round = 1;
       gameState.inMatch = true;
       gameState.isRevealing = false;
@@ -837,7 +791,6 @@
 
       document.getElementById('battleHistoryList').innerHTML = '';
 
-      // Names & Tags Configuration
       const p1Label = document.getElementById('labelP1Name');
       const p2Label = document.getElementById('labelP2Name');
       const p1Tag = document.getElementById('p1CardPlayerTag');
@@ -855,17 +808,14 @@
         p2Tag.textContent = 'Player 2';
       }
 
-      // Rule Badge text
       const ruleText = { single: '1回勝負', first3: '3本先取', hp: 'HPバトル (HP 3)' }[gameState.matchFormat];
       document.getElementById('arenaRuleBadge').textContent = ruleText;
 
-      // Gimmick Tags
       const tagsWrap = document.getElementById('arenaGimmickTags');
       tagsWrap.innerHTML = '';
       if (gameState.useDeck) tagsWrap.innerHTML += '<span class="bg-indigo-900/80 text-indigo-300 px-1.5 py-0.5 rounded text-[10px]">手札制</span>';
       if (gameState.useSkill) tagsWrap.innerHTML += '<span class="bg-amber-900/80 text-amber-300 px-1.5 py-0.5 rounded text-[10px]">必殺技</span>';
 
-      // HP Bar visibility
       const hp1 = document.getElementById('p1HpBarWrap');
       const hp2 = document.getElementById('p2HpBarWrap');
       if (gameState.matchFormat === 'hp') {
@@ -905,7 +855,6 @@
         }
       }
 
-      // Skill selection visibility
       const skillBar = document.getElementById('skillBarStandard');
       if (gameState.useSkill && (gameState.mode === 'vs_com' || gameState.twoPlayerStyle === 'pass_play')) {
         skillBar.classList.remove('hidden');
@@ -924,7 +873,6 @@
 
       updateStatusHud();
 
-      // UI resets
       document.getElementById('revealedHandsWrap').classList.add('hidden');
       document.getElementById('roundOutcomeBadge').classList.add('hidden');
       document.getElementById('passHandoverOverlay').classList.add('hidden');
@@ -973,7 +921,6 @@
         return;
       }
 
-      // Check if both decks are depleted; reset if so
       const p1Remaining = gameState.p1Deck.rock + gameState.p1Deck.scissors + gameState.p1Deck.paper;
       const p2Remaining = gameState.p2Deck.rock + gameState.p2Deck.scissors + gameState.p2Deck.paper;
       if (p1Remaining === 0 && p2Remaining === 0) {
@@ -1060,7 +1007,6 @@
       const validHands = ['rock', 'scissors', 'paper'].filter(h => !gameState.useDeck || gameState.p2Deck[h] > 0);
       if (validHands.length === 0) return 'rock';
 
-      // 1. Easy: High chance of repeating previous hand
       if (gameState.aiDifficulty === 'easy') {
         if (gameState.lastAiChoice && validHands.includes(gameState.lastAiChoice) && Math.random() < 0.45) {
           return gameState.lastAiChoice;
@@ -1068,12 +1014,10 @@
         return validHands[Math.floor(Math.random() * validHands.length)];
       }
 
-      // 2. Normal: Pure random
       if (gameState.aiDifficulty === 'normal') {
         return validHands[Math.floor(Math.random() * validHands.length)];
       }
 
-      // 3. Hard: Transition frequency prediction (Markov)
       if (gameState.aiDifficulty === 'hard') {
         if (gameState.userHandHistory.length < 2) {
           return validHands[Math.floor(Math.random() * validHands.length)];
@@ -1118,25 +1062,19 @@
         if (gameState.useSkill && !gameState.p2SkillConsumed && Math.random() < 0.3) {
           gameState.p2Skill = Math.random() < 0.5 ? 'shield' : 'critical';
         }
-
-        // Direct countdown for VS COM for smooth pacing
         triggerCountdownAndReveal();
       } 
       else if (gameState.mode === 'two_player' && gameState.twoPlayerStyle === 'pass_play') {
         if (gameState.passPhase === 1) {
-          // P1 Selected: Hide controls and show intermission modal
           gameState.p1Hand = handKey;
           document.getElementById('passHandoverOverlay').classList.remove('hidden');
         } else if (gameState.passPhase === 2) {
-          // P2 Selected: Both hands are locked in!
           gameState.p2Hand = handKey;
           gameState.passPhase = 3;
 
-          // HIDE standard control panel so hands can't be re-selected
           document.getElementById('panelStandard').classList.add('hidden');
           document.getElementById('stageBanner').classList.add('hidden');
 
-          // DISPLAY DRAMATIC "🔥 いざ、勝負！！" BUTTON PROMPT
           audio.battleRiser();
           document.getElementById('passReadyBattlePrompt').classList.remove('hidden');
         }
@@ -1208,7 +1146,6 @@
       gameState.isRevealing = true;
       audio.battleRiser();
 
-      // Hide ready prompts
       document.getElementById('passReadyBattlePrompt').classList.add('hidden');
       const stageBanner = document.getElementById('stageBanner');
       stageBanner.classList.remove('hidden');
@@ -1239,17 +1176,14 @@
     function executeHandClash() {
       audio.clashImpact();
 
-      // Deduct Deck cards
       if (gameState.useDeck) {
         gameState.p1Deck[gameState.p1Hand] = Math.max(0, gameState.p1Deck[gameState.p1Hand] - 1);
         gameState.p2Deck[gameState.p2Hand] = Math.max(0, gameState.p2Deck[gameState.p2Hand] - 1);
       }
 
-      // Mark skills as consumed
       if (gameState.p1Skill) gameState.p1SkillConsumed = true;
       if (gameState.p2Skill) gameState.p2SkillConsumed = true;
 
-      // Update AI historical patterns
       if (gameState.mode === 'vs_com') {
         if (gameState.lastUserChoice) {
           gameState.userTransitions[gameState.lastUserChoice][gameState.p1Hand]++;
@@ -1258,18 +1192,15 @@
         gameState.lastUserChoice = gameState.p1Hand;
       }
 
-      // Hide Banner, Show Cards
       document.getElementById('stageBanner').classList.add('hidden');
       const handsWrap = document.getElementById('revealedHandsWrap');
       handsWrap.classList.remove('hidden');
 
-      // Populate Hands UI
       document.getElementById('p1HandBox').firstChild.textContent = HANDS_MAP[gameState.p1Hand].emoji;
       document.getElementById('p1HandText').textContent = HANDS_MAP[gameState.p1Hand].name;
       document.getElementById('p2HandBox').firstChild.textContent = HANDS_MAP[gameState.p2Hand].emoji;
       document.getElementById('p2HandText').textContent = HANDS_MAP[gameState.p2Hand].name;
 
-      // Populate Skill Badges
       const p1Badge = document.getElementById('p1SkillBadge');
       const p2Badge = document.getElementById('p2SkillBadge');
       if (gameState.p1Skill) {
@@ -1285,7 +1216,6 @@
         p2Badge.classList.add('hidden');
       }
 
-      // Determine Winner
       let outcome = 'draw';
       if (gameState.p1Hand === gameState.p2Hand) {
         if (gameState.p1Skill === 'shield' && gameState.p2Skill !== 'shield') outcome = 'p1';
@@ -1297,7 +1227,6 @@
         outcome = 'p2';
       }
 
-      // Calculate Damage/Points
       let value = 1;
       const toastWrap = document.getElementById('roundOutcomeBadge');
       const toastMsg = document.getElementById('roundOutcomeMessage');
@@ -1341,7 +1270,6 @@
 
       updateStatusHud();
 
-      // Check Match End Condition
       const isOver = checkMatchConclusion();
 
       setTimeout(() => {
