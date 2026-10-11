@@ -30,7 +30,7 @@
     html, body {
       width: 100%;
       height: 100%;
-      height: 100dvh; /* iOS Safariの動的アドレスバーに対応 */
+      height: 100dvh;
       overflow: hidden;
       background-color: var(--bg-dark);
       color: var(--text-main);
@@ -41,7 +41,7 @@
       inset: 0;
     }
 
-    /* 背景の繊細なハイテクグリッド */
+    /* 背景グリッド */
     .grid-pattern {
       position: absolute;
       inset: 0;
@@ -61,7 +61,7 @@
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px;
+      padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom)) 16px;
       z-index: 10;
     }
 
@@ -77,33 +77,56 @@
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid var(--slate-border);
       border-radius: 20px;
-      padding: 10px 16px;
+      padding: 8px 12px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      gap: 8px;
+    }
+
+    .back-portal-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 12px;
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      color: #38bdf8;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background 0.15s ease;
+    }
+    .back-portal-btn:active {
+      background: rgba(6, 182, 212, 0.25);
     }
 
     .title-box {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      overflow: hidden;
     }
 
     .title-box h1 {
-      font-size: 1rem;
+      font-size: 0.92rem;
       font-weight: 800;
       letter-spacing: -0.02em;
       background: linear-gradient(135deg, #38bdf8, #818cf8);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      white-space: nowrap;
     }
 
     .best-badge {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
+      flex-shrink: 0;
     }
 
     .best-label {
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       font-weight: 700;
       color: var(--text-muted);
       text-transform: uppercase;
@@ -111,13 +134,13 @@
     }
 
     .best-val {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 800;
       color: #38bdf8;
       font-variant-numeric: tabular-nums;
     }
 
-    /* キャンバスコンテナ（画面幅に合わせて正方形） */
+    /* キャンバスコンテナ */
     .canvas-container {
       position: relative;
       width: 100%;
@@ -141,7 +164,7 @@
       z-index: 2;
     }
 
-    /* 初期ガイド表示（描き始めるとフェードアウト） */
+    /* 初期ガイド表示 */
     #guideLayer {
       position: absolute;
       inset: 0;
@@ -258,28 +281,29 @@
       color: #94a3b8;
       text-align: center;
       line-height: 1.4;
-      margin-bottom: 22px;
+      margin-bottom: 18px;
       padding: 0 10px;
     }
 
     .modal-btn-row {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       width: 100%;
     }
 
     .btn {
       flex: 1;
-      padding: 13px 10px;
+      padding: 12px 8px;
       border-radius: 14px;
       border: none;
-      font-size: 0.88rem;
+      font-size: 0.82rem;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 4px;
+      text-decoration: none;
       transition: transform 0.1s ease;
     }
     .btn:active {
@@ -334,33 +358,29 @@
 </head>
 <body>
 
-  <!-- 背景グリッド -->
   <div class="grid-pattern"></div>
-
-  <!-- トースト表示 -->
   <div id="toast"><span>✓</span><span id="toastMsg">コピーしました</span></div>
 
   <div id="app">
-    <!-- ヘッダー -->
+    <!-- ヘッダー（戻るボタン付き） -->
     <header>
+      <a href="index.html" class="back-portal-btn">
+        <span>‹</span> ゲームセンター
+      </a>
       <div class="title-box">
-        <span style="font-size: 1.25rem;">⭕</span>
-        <div>
-          <h1>完璧な円を描け！</h1>
-        </div>
+        <span>⭕</span>
+        <h1>円を描け！</h1>
       </div>
       <div class="best-badge">
-        <span class="best-label">自己ベスト</span>
+        <span class="best-label">ベスト</span>
         <span id="bestScoreEl" class="best-val">0.0%</span>
       </div>
     </header>
 
-    <!-- 描画エリア（正方形） -->
+    <!-- 描画エリア -->
     <div class="canvas-container" id="canvasBox">
-      <!-- 描画用Canvas -->
       <canvas id="drawCanvas"></canvas>
 
-      <!-- ガイド表示 -->
       <div id="guideLayer">
         <div class="guide-circle">
           <div class="center-cross"></div>
@@ -383,27 +403,26 @@
             <span>🔄</span> もう一度
           </button>
           <button id="shareBtn" class="btn btn-sub">
-            <span>📋</span> 結果をコピー
+            <span>📋</span> コピー
           </button>
+          <a href="index.html" class="btn btn-sub">
+            <span>🏠</span> センター
+          </a>
         </div>
       </div>
     </div>
 
-    <!-- フッター -->
     <footer>
       画面を1本の指でなぞって一筆書きしてください
     </footer>
   </div>
 
   <script>
-    // iOS Safari AudioContext対策: 最初のタッチ時にのみ初期化
     let audioCtx = null;
     function initAudioOnFirstTouch() {
       if (!audioCtx) {
         const AudioClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioClass) {
-          audioCtx = new AudioClass();
-        }
+        if (AudioClass) audioCtx = new AudioClass();
       }
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
@@ -423,9 +442,7 @@
         gain.connect(audioCtx.destination);
         osc.start();
         osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {
-        // エラーを握りつぶし、ゲーム停止を防ぐ
-      }
+      } catch (e) {}
     }
 
     const canvasBox = document.getElementById('canvasBox');
@@ -442,7 +459,6 @@
     const toast = document.getElementById('toast');
     const toastMsg = document.getElementById('toastMsg');
 
-    // LocalStorageの安全な読み出し
     let bestScore = 0.0;
     try {
       const saved = localStorage.getItem('circle_best_score');
@@ -450,13 +466,9 @@
         bestScore = parseFloat(saved) || 0.0;
         bestScoreEl.textContent = bestScore.toFixed(1) + '%';
       }
-    } catch (e) {
-      console.warn('LocalStorage not available');
-    }
+    } catch (e) {}
 
-    let dpr = 1;
-    let canvasW = 0;
-    let canvasH = 0;
+    let dpr = 1, canvasW = 0, canvasH = 0;
 
     function resizeCanvas() {
       const rect = canvasBox.getBoundingClientRect();
@@ -470,9 +482,7 @@
       ctx.scale(dpr, dpr);
     }
 
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-    });
+    window.addEventListener('resize', resizeCanvas);
 
     let isDrawing = false;
     let points = [];
@@ -488,11 +498,9 @@
       };
     }
 
-    // タッチ開始
     canvas.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       initAudioOnFirstTouch();
-
       if (isFinished) return;
 
       isDrawing = true;
@@ -501,13 +509,9 @@
       points.push(pt);
       lastPoint = pt;
 
-      // ガイドをフェードアウト
       guideLayer.style.opacity = '0';
-
-      // 画面クリア
       ctx.clearRect(0, 0, canvasW, canvasH);
 
-      // 始点のネオンドット
       ctx.beginPath();
       ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
       ctx.fillStyle = '#06b6d4';
@@ -519,7 +523,6 @@
       playTone(480, 'sine', 0.05, 0.05);
     }, { passive: false });
 
-    // タッチ移動
     canvas.addEventListener('pointermove', (e) => {
       if (!isDrawing || isFinished) return;
       e.preventDefault();
@@ -529,11 +532,9 @@
       const dy = pt.y - lastPoint.y;
       const dist = Math.hypot(dx, dy);
 
-      if (dist < 2.5) return; // 微小な揺れはスキップ
-
+      if (dist < 2.5) return;
       points.push(pt);
 
-      // シアンのネオン軌跡を描画
       ctx.beginPath();
       ctx.moveTo(lastPoint.x, lastPoint.y);
       ctx.lineTo(pt.x, pt.y);
@@ -546,27 +547,22 @@
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // 描画音（ピッチが適度に揺らぐ）
       if (points.length % 6 === 0) {
         playTone(320 + Math.min(dist * 12, 400), 'triangle', 0.03, 0.03);
       }
-
       lastPoint = pt;
     }, { passive: false });
 
-    // タッチ終了（判定開始）
     const onPointerEnd = (e) => {
       if (!isDrawing || isFinished) return;
       e.preventDefault();
       isDrawing = false;
 
       if (points.length < 20) {
-        // 短すぎる場合はリセット
         guideLayer.style.opacity = '1';
         ctx.clearRect(0, 0, canvasW, canvasH);
         return;
       }
-
       analyzeCircle();
     };
 
@@ -576,19 +572,13 @@
     function analyzeCircle() {
       isFinished = true;
       const n = points.length;
-
-      // 1. 重心（中心点）の計算
       let sumX = 0, sumY = 0;
       for (let i = 0; i < n; i++) {
-        sumX += points[i].x;
-        sumY += points[i].y;
+        sumX += points[i].x; sumY += points[i].y;
       }
-      const cx = sumX / n;
-      const cy = sumY / n;
+      const cx = sumX / n, cy = sumY / n;
 
-      // 2. 平均半径とばらつき（標準偏差）の計算
-      let radii = [];
-      let sumR = 0;
+      let radii = [], sumR = 0;
       for (let i = 0; i < n; i++) {
         const r = Math.hypot(points[i].x - cx, points[i].y - cy);
         radii.push(r);
@@ -596,7 +586,6 @@
       }
       const avgR = sumR / n;
 
-      // 小さすぎる円は無効
       if (avgR < 25) {
         showResultModal(0.0, '小さすぎます', 'もっと大きく画面いっぱいに描いてね！');
         return;
@@ -607,9 +596,8 @@
         varSum += Math.pow(radii[i] - avgR, 2);
       }
       const stdDev = Math.sqrt(varSum / n);
-      const cv = stdDev / avgR; // 変動係数（0に近いほど完全な丸）
+      const cv = stdDev / avgR;
 
-      // 3. 累積回転角（ぐるっと一周回っているか）
       let totalAngle = 0;
       let prevAngle = Math.atan2(points[0].y - cy, points[0].x - cx);
       for (let i = 1; i < n; i++) {
@@ -622,16 +610,11 @@
       }
       const turns = Math.abs(totalAngle) / (2 * Math.PI);
 
-      // 4. 始点と終点の隙間
       const startPt = points[0];
       const endPt = points[n - 1];
-      const gap = Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y);
-      const gapRatio = gap / avgR;
+      const gapRatio = Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y) / avgR;
 
-      // 5. スコア計算ロジック
-      let score = 0;
-      let rank = '';
-      let feedback = '';
+      let score = 0, rank = '', feedback = '';
 
       if (turns < 0.72) {
         score = Math.max(5.0, turns * 40);
@@ -642,11 +625,8 @@
         rank = 'ぐるぐる巻き 🌀';
         feedback = '線を重ねすぎです。サッと一筆で描いてみて！';
       } else {
-        // 歪みスコア（変動係数ベース）
         const shapeScore = Math.max(0, 100 * (1 - cv * 3.4));
-        // 閉じ具合スコア
         const closeScore = Math.max(0, 100 * (1 - gapRatio * 0.85));
-
         score = shapeScore * 0.75 + closeScore * 0.25;
         score = Math.min(99.6, Math.max(10.0, score));
 
@@ -668,18 +648,13 @@
         }
       }
 
-      // 理想の円（白の点線）と中心点（赤点）を描画
       drawIdealCircleOverlay(cx, cy, avgR);
-
-      // モーダル表示
       setTimeout(() => {
         showResultModal(score, rank, feedback);
       }, 350);
     }
 
-    // 理想の円をアニメーション風に重ね合わせ
     function drawIdealCircleOverlay(cx, cy, r) {
-      // 中心点（赤）
       ctx.beginPath();
       ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
       ctx.fillStyle = '#ef4444';
@@ -688,7 +663,6 @@
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // 理想の点線円（白）
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
@@ -707,7 +681,6 @@
       feedbackEl.textContent = feedback;
       resultModal.classList.add('show');
 
-      // ベストスコア更新
       if (score > bestScore) {
         bestScore = score;
         bestScoreEl.textContent = bestScore.toFixed(1) + '%';
@@ -716,7 +689,6 @@
         } catch (e) {}
       }
 
-      // サウンド
       if (score >= 90.0) {
         playTone(523, 'sine', 0.12, 0.1);
         setTimeout(() => playTone(659, 'sine', 0.12, 0.1), 100);
@@ -728,7 +700,6 @@
       }
     }
 
-    // 「もう一度」リセット
     retryBtn.addEventListener('click', () => {
       initAudioOnFirstTouch();
       resultModal.classList.remove('show');
@@ -744,50 +715,20 @@
       initAudioOnFirstTouch();
       const score = scoreValEl.textContent;
       const rank = rankNameEl.textContent;
-      const text = `⭕『完璧な円を描け！』で【${score} (${rank})】を記録！\nあなたの指先はどれくらい正確？挑戦してみてね！`;
+      const text = `⭕『完璧な円を描け！』で【${score} (${rank})】を記録！\n挑戦してみてね！`;
 
-      let copied = false;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text)
-          .then(() => {
-            showToast('結果をクリップボードにコピーしました！');
-          })
-          .catch(() => {
-            fallbackCopy(text);
-          });
-      } else {
-        fallbackCopy(text);
+        navigator.clipboard.writeText(text).then(() => showToast('コピーしました！'));
       }
     });
-
-    function fallbackCopy(text) {
-      const area = document.createElement('textarea');
-      area.value = text;
-      area.style.position = 'fixed';
-      area.style.left = '-9999px';
-      document.body.appendChild(area);
-      area.focus();
-      area.select();
-      try {
-        document.execCommand('copy');
-        showToast('結果をクリップボードにコピーしました！');
-      } catch (err) {
-        showToast('コピーに失敗しました');
-      }
-      document.body.removeChild(area);
-    }
 
     function showToast(msg) {
       toastMsg.textContent = msg;
       toast.classList.add('show');
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 2200);
+      setTimeout(() => toast.classList.remove('show'), 2200);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      resizeCanvas();
-    });
+    window.addEventListener('DOMContentLoaded', resizeCanvas);
   </script>
 </body>
 </html>
