@@ -243,4 +243,635 @@
           <span class="key-hint text-[10px] text-slate-500 mt-0.5 hidden">[A]</span>
         </button>
         <button class="p1-select-btn p-4 rounded-2xl bg-slate-800 hover:bg-slate-700/80 active:bg-pink-600 border border-slate-700 flex flex-col items-center transition-all group disabled:opacity-40" data-hand="scissors">
-          <span class="text-3
+          <span class="text-3xl sm:text-4xl group-hover:scale-110 transition-transform">✌️</span>
+          <span class="text-xs font-bold text-slate-300 mt-1">チョキ</span>
+          <span class="key-hint text-[10px] text-slate-500 mt-0.5 hidden">[S]</span>
+        </button>
+        <button class="p1-select-btn p-4 rounded-2xl bg-slate-800 hover:bg-slate-700/80 active:bg-pink-600 border border-slate-700 flex flex-col items-center transition-all group disabled:opacity-40" data-hand="paper">
+          <span class="text-3xl sm:text-4xl group-hover:scale-110 transition-transform">🖐️</span>
+          <span class="text-xs font-bold text-slate-300 mt-1">パー</span>
+          <span class="key-hint text-[10px] text-slate-500 mt-0.5 hidden">[D]</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== パス＆プレイ用 端末受け渡し幕 ==================== -->
+  <div id="pass-screen-modal" class="fixed inset-0 bg-slate-950/98 z-40 flex items-center justify-center p-6 hidden">
+    <div class="text-center max-w-sm">
+      <div class="text-5xl animate-bounce mb-4">📱 ➔ 🤝</div>
+      <h3 class="font-title text-2xl font-black text-pink-400 mb-2">端末を Player 2 へ！</h3>
+      <p class="text-slate-400 text-sm mb-6">手が見えないよう端末を相手に渡してください。<br>準備ができたらボタンを押してね！</p>
+      <button id="btn-pass-ready" class="w-full py-4 rounded-2xl bg-pink-600 font-title font-black text-lg text-white shadow-lg shadow-pink-600/40 active:scale-95 transition-all">
+        Player 2 準備完了！
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== 決着モーダル ==================== -->
+  <div id="match-over-modal" class="fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border-2 border-indigo-500/50 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+      <div id="match-winner-icon" class="text-6xl mb-3">🏆</div>
+      <h2 id="match-winner-title" class="font-title text-3xl font-black text-indigo-300 mb-2">WINNER!</h2>
+      <p id="match-winner-sub" class="text-slate-400 text-sm mb-6">勝負が決着しました！</p>
+      <div class="space-y-3">
+        <button id="btn-rematch" class="w-full py-3.5 rounded-xl bg-pink-600 hover:bg-pink-500 font-bold text-white shadow-lg active:scale-95 transition-all">
+          もう一度遊ぶ
+        </button>
+        <button id="btn-back-settings" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-slate-300 text-sm active:scale-95 transition-all">
+          ルール設定を変更
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- スタイル定義補助 -->
+  <style>
+    .active-opt {
+      background-color: rgb(236 72 153 / 0.2);
+      border-color: rgb(236 72 153);
+      color: rgb(244 114 182);
+    }
+    .inactive-opt {
+      background-color: rgb(30 41 59 / 0.6);
+      border-color: rgb(51 65 85 / 0.8);
+      color: rgb(148 163 184);
+    }
+  </style>
+
+  <!-- ==================== ゲームロジック JavaScript ==================== -->
+  <script>
+    /* --- Web Audio API (心地よく爽快なゲームサウンド) --- */
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    // タップ音
+    function playTapSound() {
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(480, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(700, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+    }
+
+    // 「いざ、勝負！」の音：和太鼓ロール＋明るいベル・アルペジオ（警報音ゼロ）
+    function playBattleShobuSound() {
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+
+      // 1. 和太鼓・タムの打撃音（ド・ドン！）
+      [0, 0.12].forEach((timeOffset, idx) => {
+        const drumOsc = ctx.createOscillator();
+        const drumGain = ctx.createGain();
+        drumOsc.type = 'sine';
+        drumOsc.frequency.setValueAtTime(idx === 0 ? 120 : 90, now + timeOffset);
+        drumOsc.frequency.exponentialRampToValueAtTime(35, now + timeOffset + 0.18);
+        drumGain.gain.setValueAtTime(0.4, now + timeOffset);
+        drumGain.gain.exponentialRampToValueAtTime(0.001, now + timeOffset + 0.22);
+        drumOsc.connect(drumGain);
+        drumGain.connect(ctx.destination);
+        drumOsc.start(now + timeOffset);
+        drumOsc.stop(now + timeOffset + 0.22);
+      });
+
+      // 2. 華やかなファンファーレ風の上昇アルペジオ（ド・ミ・ソ・ド）
+      const arpeggio = [523.25, 659.25, 783.99, 1046.50];
+      arpeggio.forEach((freq, idx) => {
+        const noteOsc = ctx.createOscillator();
+        const noteGain = ctx.createGain();
+        noteOsc.type = 'triangle';
+        const start = now + 0.15 + (idx * 0.06);
+        noteOsc.frequency.setValueAtTime(freq, start);
+        noteGain.gain.setValueAtTime(0.15, start);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, start + 0.2);
+        noteOsc.connect(noteGain);
+        noteGain.connect(ctx.destination);
+        noteOsc.start(start);
+        noteOsc.stop(start + 0.2);
+      });
+    }
+
+    // カウントダウン音（ぽく・ぽく・ぽん）
+    function playCountdownTone(step) {
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      const freq = step === 1 ? 440 : (step === 2 ? 550 : 880);
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    }
+
+    // 勝利ファンファーレ
+    function playWinSound() {
+      const ctx = getAudioContext();
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((f, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(f, ctx.currentTime + i * 0.09);
+        g.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.09);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.09 + 0.3);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(ctx.currentTime + i * 0.09);
+        o.stop(ctx.currentTime + i * 0.09 + 0.3);
+      });
+    }
+
+    /* --- ゲーム状態管理 --- */
+    const STATE = {
+      mode: 'com',        // 'com' | '2p'
+      comDiff: 'normal',  // 'easy' | 'normal' | 'hard'
+      p2Style: 'pass',    // 'pass' | 'face' | 'key'
+      rule: 'hp',         // 'single' | 'best3' | 'hp'
+      useStock: false,
+      useSkill: false,
+
+      p1: { hp: 3, score: 0, hand: null, stock: { rock: 2, scissors: 2, paper: 2 }, skill: null, usedSkill: false },
+      p2: { hp: 3, score: 0, hand: null, stock: { rock: 2, scissors: 2, paper: 2 }, skill: null, usedSkill: false },
+
+      roundState: 'waiting', // 'waiting' | 'pass_p1_done' | 'both_ready' | 'animating' | 'judged'
+      p1History: []
+    };
+
+    const HAND_EMOJI = { rock: '✊', scissors: '✌️', paper: '🖐️' };
+    const HAND_NAME = { rock: 'グー', scissors: 'チョキ', paper: 'パー' };
+
+    /* --- DOM 取得 --- */
+    const settingsModal = document.getElementById('settings-modal');
+    const comDiffGroup = document.getElementById('com-diff-group');
+    const p2StyleGroup = document.getElementById('p2-style-group');
+    const passScreenModal = document.getElementById('pass-screen-modal');
+    const battleFireWrapper = document.getElementById('battle-fire-wrapper');
+    const nextRoundWrapper = document.getElementById('next-round-wrapper');
+    const matchOverModal = document.getElementById('match-over-modal');
+
+    const p1HandDisplay = document.getElementById('p1-hand-display');
+    const p2HandDisplay = document.getElementById('p2-hand-display');
+    const arenaAnnouncement = document.getElementById('arena-announcement');
+
+    /* --- 設定選択 UI イベント --- */
+    document.querySelectorAll('.mode-select-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        playTapSound();
+        document.querySelectorAll('.mode-select-btn').forEach(b => {
+          b.classList.remove('active-opt'); b.classList.add('inactive-opt');
+        });
+        btn.classList.add('active-opt'); btn.classList.remove('inactive-opt');
+        STATE.mode = btn.dataset.val;
+        if (STATE.mode === 'com') {
+          comDiffGroup.classList.remove('hidden');
+          p2StyleGroup.classList.add('hidden');
+        } else {
+          comDiffGroup.classList.add('hidden');
+          p2StyleGroup.classList.remove('hidden');
+        }
+      });
+    });
+
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        playTapSound();
+        document.querySelectorAll('.diff-btn').forEach(b => { b.classList.remove('active-opt'); b.classList.add('inactive-opt'); });
+        btn.classList.add('active-opt'); btn.classList.remove('inactive-opt');
+        STATE.comDiff = btn.dataset.val;
+      });
+    });
+
+    document.querySelectorAll('.p2-style-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        playTapSound();
+        document.querySelectorAll('.p2-style-btn').forEach(b => { b.classList.remove('active-opt'); b.classList.add('inactive-opt'); });
+        btn.classList.add('active-opt'); btn.classList.remove('inactive-opt');
+        STATE.p2Style = btn.dataset.val;
+      });
+    });
+
+    document.querySelectorAll('.rule-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        playTapSound();
+        document.querySelectorAll('.rule-btn').forEach(b => { b.classList.remove('active-opt'); b.classList.add('inactive-opt'); });
+        btn.classList.add('active-opt'); btn.classList.remove('inactive-opt');
+        STATE.rule = btn.dataset.val;
+      });
+    });
+
+    document.getElementById('btn-open-settings').addEventListener('click', () => {
+      settingsModal.classList.remove('hidden');
+    });
+
+    document.getElementById('btn-back-settings').addEventListener('click', () => {
+      matchOverModal.classList.add('hidden');
+      settingsModal.classList.remove('hidden');
+    });
+
+    document.getElementById('btn-start-game').addEventListener('click', () => {
+      playTapSound();
+      STATE.useStock = document.getElementById('check-stock').checked;
+      STATE.useSkill = document.getElementById('check-skill').checked;
+      settingsModal.classList.add('hidden');
+      initMatch();
+    });
+
+    document.getElementById('btn-rematch').addEventListener('click', () => {
+      playTapSound();
+      matchOverModal.classList.add('hidden');
+      initMatch();
+    });
+
+    /* --- 試合初期化 --- */
+    function initMatch() {
+      STATE.p1.hp = 3; STATE.p1.score = 0; STATE.p1.usedSkill = false; STATE.p1.skill = null;
+      STATE.p2.hp = 3; STATE.p2.score = 0; STATE.p2.usedSkill = false; STATE.p2.skill = null;
+      STATE.p1.stock = { rock: 2, scissors: 2, paper: 2 };
+      STATE.p2.stock = { rock: 2, scissors: 2, paper: 2 };
+      STATE.p1History = [];
+
+      // 名前・アバター更新
+      if (STATE.mode === 'com') {
+        document.getElementById('p2-avatar').textContent = '🤖';
+        document.getElementById('p2-name').textContent = `COM (${STATE.comDiff.toUpperCase()})`;
+        document.getElementById('p2-hand-label').textContent = 'COM';
+        document.getElementById('p2-face-controls').classList.add('hidden');
+      } else {
+        document.getElementById('p2-avatar').textContent = '😎';
+        document.getElementById('p2-name').textContent = 'Player 2';
+        document.getElementById('p2-hand-label').textContent = 'P2';
+        if (STATE.p2Style === 'face') {
+          document.getElementById('p2-face-controls').classList.remove('hidden');
+        } else {
+          document.getElementById('p2-face-controls').classList.add('hidden');
+        }
+      }
+
+      // 手札表示トグル
+      document.getElementById('p1-stock-box').classList.toggle('hidden', !STATE.useStock);
+      document.getElementById('p2-stock-box').classList.toggle('hidden', !STATE.useStock);
+
+      // スキル表示トグル
+      document.getElementById('p1-skill-box').classList.toggle('hidden', !STATE.useSkill);
+
+      // キーヒント表示
+      document.querySelectorAll('.key-hint').forEach(el => {
+        el.classList.toggle('hidden', !(STATE.mode === '2p' && STATE.p2Style === 'key'));
+      });
+
+      startRound();
+    }
+
+    /* --- ラウンド開始 --- */
+    function startRound() {
+      STATE.p1.hand = null;
+      STATE.p2.hand = null;
+      STATE.p1.skill = null;
+      STATE.p2.skill = null;
+      STATE.roundState = 'waiting';
+
+      p1HandDisplay.textContent = '❓';
+      p2HandDisplay.textContent = '❓';
+      p1HandDisplay.classList.remove('border-pink-500', 'border-emerald-500', 'scale-110');
+      p2HandDisplay.classList.remove('border-pink-500', 'border-emerald-500', 'scale-110');
+
+      battleFireWrapper.classList.add('hidden');
+      nextRoundWrapper.classList.add('hidden');
+      passScreenModal.classList.add('hidden');
+
+      if (STATE.mode === '2p' && STATE.p2Style === 'pass') {
+        arenaAnnouncement.innerHTML = `<span class="font-title text-xl text-indigo-400">P1の手を選んでください</span>`;
+      } else {
+        arenaAnnouncement.innerHTML = `<span class="font-title text-xl text-pink-300">手を選んでください</span>`;
+      }
+
+      renderStatus();
+      updateHandButtons();
+    }
+
+    /* --- 手札・ボタン更新 --- */
+    function updateHandButtons() {
+      ['rock', 'scissors', 'paper'].forEach(h => {
+        const p1Btn = document.querySelector(`.p1-select-btn[data-hand="${h}"]`);
+        if (p1Btn) {
+          p1Btn.disabled = STATE.useStock && STATE.p1.stock[h] <= 0;
+        }
+        const p2Btn = document.querySelector(`.face-p2-btn[data-hand="${h}"]`);
+        if (p2Btn) {
+          p2Btn.disabled = STATE.useStock && STATE.p2.stock[h] <= 0;
+        }
+      });
+    }
+
+    /* --- ステータス描画 --- */
+    function renderStatus() {
+      // P1 表示
+      const p1ScoreEl = document.getElementById('p1-score-box');
+      if (STATE.rule === 'hp') {
+        p1ScoreEl.innerHTML = `HP: ${'❤️'.repeat(Math.max(0, STATE.p1.hp))}${'🖤'.repeat(Math.max(0, 3 - STATE.p1.hp))}`;
+      } else if (STATE.rule === 'best3') {
+        p1ScoreEl.innerHTML = `勝利: ${'★'.repeat(STATE.p1.score)}${'☆'.repeat(3 - STATE.p1.score)}`;
+      } else {
+        p1ScoreEl.innerHTML = `1本勝負`;
+      }
+
+      // P2 表示
+      const p2ScoreEl = document.getElementById('p2-score-box');
+      if (STATE.rule === 'hp') {
+        p2ScoreEl.innerHTML = `HP: ${'❤️'.repeat(Math.max(0, STATE.p2.hp))}${'🖤'.repeat(Math.max(0, 3 - STATE.p2.hp))}`;
+      } else if (STATE.rule === 'best3') {
+        p2ScoreEl.innerHTML = `勝利: ${'★'.repeat(STATE.p2.score)}${'☆'.repeat(3 - STATE.p2.score)}`;
+      } else {
+        p2ScoreEl.innerHTML = `1本勝負`;
+      }
+
+      if (STATE.useStock) {
+        document.getElementById('p1-stock-rock').textContent = STATE.p1.stock.rock;
+        document.getElementById('p1-stock-scissors').textContent = STATE.p1.stock.scissors;
+        document.getElementById('p1-stock-paper').textContent = STATE.p1.stock.paper;
+
+        document.getElementById('p2-stock-rock').textContent = STATE.p2.stock.rock;
+        document.getElementById('p2-stock-scissors').textContent = STATE.p2.stock.scissors;
+        document.getElementById('p2-stock-paper').textContent = STATE.p2.stock.paper;
+      }
+    }
+
+    /* --- COM 手の決定 (AIアルゴリズム) --- */
+    function getComHand() {
+      const hands = ['rock', 'scissors', 'paper'];
+      const availableHands = STATE.useStock ? hands.filter(h => STATE.p2.stock[h] > 0) : hands;
+      if (availableHands.length === 0) return hands[Math.floor(Math.random() * hands.length)];
+
+      if (STATE.comDiff === 'easy') {
+        // お調子者: 直前に使った手を繰り返しやすい
+        return availableHands[Math.floor(Math.random() * availableHands.length)];
+      } else if (STATE.comDiff === 'normal') {
+        return availableHands[Math.floor(Math.random() * availableHands.length)];
+      } else {
+        // Hard 心理戦AI: プレイヤーの傾向を分析してメタ手を打つ
+        if (STATE.p1History.length > 0) {
+          const lastP1 = STATE.p1History[STATE.p1History.length - 1];
+          // プレイヤーが同じ手を連発すると予測して勝つ手を狙う
+          const counter = { rock: 'paper', scissors: 'rock', paper: 'scissors' };
+          const predicted = counter[lastP1];
+          if (availableHands.includes(predicted)) return predicted;
+        }
+        return availableHands[Math.floor(Math.random() * availableHands.length)];
+      }
+    }
+
+    /* --- 入力処理 --- */
+    // P1 手選択ボタン
+    document.querySelectorAll('.p1-select-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (STATE.roundState !== 'waiting' && !(STATE.mode === '2p' && STATE.p2Style === 'pass' && STATE.roundState === 'pass_p2_turn')) return;
+        playTapSound();
+        handleP1Select(btn.dataset.hand);
+      });
+    });
+
+    // P2 対面タップボタン
+    document.querySelectorAll('.face-p2-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (STATE.roundState !== 'waiting') return;
+        playTapSound();
+        STATE.p2.hand = btn.dataset.hand;
+        document.getElementById('p2-face-status').textContent = '✅ READY';
+        checkBothReady();
+      });
+    });
+
+    // P1 スキル選択
+    document.getElementById('btn-skill-shield').addEventListener('click', () => {
+      if (STATE.p1.usedSkill) return;
+      playTapSound();
+      STATE.p1.skill = 'shield';
+      alert('🛡️ 今回の勝負で「シールド」が有効になります！（あいこでも勝ち）');
+    });
+    document.getElementById('btn-skill-crit').addEventListener('click', () => {
+      if (STATE.p1.usedSkill) return;
+      playTapSound();
+      STATE.p1.skill = 'crit';
+      alert('⚡ 今回の勝負で「クリティカル」が有効になります！（勝てば2点／2ダメージ）');
+    });
+
+    function handleP1Select(hand) {
+      if (STATE.mode === 'com') {
+        STATE.p1.hand = hand;
+        STATE.p2.hand = getComHand();
+        startBattleShowdown();
+      } else if (STATE.p2Style === 'pass') {
+        if (STATE.roundState === 'waiting') {
+          // P1 選択完了 -> スマホ受け渡し画面へ
+          STATE.p1.hand = hand;
+          STATE.roundState = 'pass_p1_done';
+          passScreenModal.classList.remove('hidden');
+        } else if (STATE.roundState === 'pass_p2_turn') {
+          // P2 選択完了 -> 「いざ、勝負！！」ボタン出現
+          STATE.p2.hand = hand;
+          STATE.roundState = 'both_ready';
+          battleFireWrapper.classList.remove('hidden');
+          arenaAnnouncement.innerHTML = `<span class="font-title text-xl text-amber-300">両者の手が決定しました！</span>`;
+        }
+      } else if (STATE.p2Style === 'face') {
+        STATE.p1.hand = hand;
+        p1HandDisplay.textContent = 'READY';
+        checkBothReady();
+      }
+    }
+
+    // パス＆プレイ用 P2 準備完了ボタン
+    document.getElementById('btn-pass-ready').addEventListener('click', () => {
+      playTapSound();
+      passScreenModal.classList.add('hidden');
+      STATE.roundState = 'pass_p2_turn';
+      arenaAnnouncement.innerHTML = `<span class="font-title text-xl text-pink-400">P2の手を選んでください</span>`;
+    });
+
+    // 🔥「いざ、勝負！！」ボタン押下
+    document.getElementById('btn-fire-battle').addEventListener('click', () => {
+      playBattleShobuSound();
+      battleFireWrapper.classList.add('hidden');
+      startBattleShowdown();
+    });
+
+    // 2P 対面・キーボードの揃い判定
+    function checkBothReady() {
+      if (STATE.p1.hand && STATE.p2.hand) {
+        startBattleShowdown();
+      }
+    }
+
+    // キーボード同時押しイベント (PC用)
+    window.addEventListener('keydown', (e) => {
+      if (STATE.mode !== '2p' || STATE.p2Style !== 'key' || STATE.roundState !== 'waiting') return;
+      const k = e.key.toLowerCase();
+      if (k === 'a' && (!STATE.useStock || STATE.p1.stock.rock > 0)) { STATE.p1.hand = 'rock'; p1HandDisplay.textContent = 'READY'; }
+      if (k === 's' && (!STATE.useStock || STATE.p1.stock.scissors > 0)) { STATE.p1.hand = 'scissors'; p1HandDisplay.textContent = 'READY'; }
+      if (k === 'd' && (!STATE.useStock || STATE.p1.stock.paper > 0)) { STATE.p1.hand = 'paper'; p1HandDisplay.textContent = 'READY'; }
+
+      if (k === 'j' && (!STATE.useStock || STATE.p2.stock.rock > 0)) { STATE.p2.hand = 'rock'; p2HandDisplay.textContent = 'READY'; }
+      if (k === 'k' && (!STATE.useStock || STATE.p2.stock.scissors > 0)) { STATE.p2.hand = 'scissors'; p2HandDisplay.textContent = 'READY'; }
+      if (k === 'l' && (!STATE.useStock || STATE.p2.stock.paper > 0)) { STATE.p2.hand = 'paper'; p2HandDisplay.textContent = 'READY'; }
+
+      checkBothReady();
+    });
+
+    /* --- じゃん・けん・ぽん！ カウントダウン＆結果オープン --- */
+    function startBattleShowdown() {
+      STATE.roundState = 'animating';
+      const steps = [
+        { text: 'じゃん…', tone: 1, delay: 0 },
+        { text: 'けん…', tone: 2, delay: 650 },
+        { text: 'ぽん！！', tone: 3, delay: 1300 }
+      ];
+
+      steps.forEach(s => {
+        setTimeout(() => {
+          arenaAnnouncement.innerHTML = `<span class="font-title text-4xl text-pink-400 drop-shadow animate-ping">${s.text}</span>`;
+          playCountdownTone(s.tone);
+        }, s.delay);
+      });
+
+      // 手をオープン＆判定
+      setTimeout(() => {
+        judgeRound();
+      }, 1900);
+    }
+
+    /* --- 勝敗判定ロジック --- */
+    function judgeRound() {
+      STATE.roundState = 'judged';
+      const p1h = STATE.p1.hand;
+      const p2h = STATE.p2.hand;
+
+      p1HandDisplay.textContent = HAND_EMOJI[p1h];
+      p2HandDisplay.textContent = HAND_EMOJI[p2h];
+      STATE.p1History.push(p1h);
+
+      // 手札の消費
+      if (STATE.useStock) {
+        STATE.p1.stock[p1h]--;
+        STATE.p2.stock[p2h]--;
+        // 両者全消費したらリセット
+        const p1Rem = Object.values(STATE.p1.stock).reduce((a,b)=>a+b, 0);
+        const p2Rem = Object.values(STATE.p2.stock).reduce((a,b)=>a+b, 0);
+        if (p1Rem === 0 && p2Rem === 0) {
+          STATE.p1.stock = { rock: 2, scissors: 2, paper: 2 };
+          STATE.p2.stock = { rock: 2, scissors: 2, paper: 2 };
+        }
+      }
+
+      // 勝者判定: 0=あいこ, 1=P1勝ち, 2=P2勝ち
+      let result = 0;
+      if (p1h === p2h) {
+        if (STATE.p1.skill === 'shield' && STATE.p2.skill !== 'shield') {
+          result = 1; // P1シールド発動
+        } else if (STATE.p2.skill === 'shield' && STATE.p1.skill !== 'shield') {
+          result = 2; // P2シールド発動
+        } else {
+          result = 0;
+        }
+      } else if (
+        (p1h === 'rock' && p2h === 'scissors') ||
+        (p1h === 'scissors' && p2h === 'paper') ||
+        (p1h === 'paper' && p2h === 'rock')
+      ) {
+        result = 1;
+      } else {
+        result = 2;
+      }
+
+      // ダメージ・ポイント計算
+      let dmg = 1;
+      if (result === 1 && STATE.p1.skill === 'crit') dmg = 2;
+      if (result === 2 && STATE.p2.skill === 'crit') dmg = 2;
+
+      // スキル使用済みマーク
+      if (STATE.p1.skill) STATE.p1.usedSkill = true;
+      if (STATE.p2.skill) STATE.p2.usedSkill = true;
+
+      // 結果反映
+      if (result === 0) {
+        arenaAnnouncement.innerHTML = `<span class="font-title text-3xl text-amber-300">あいこでしょ！</span>`;
+      } else if (result === 1) {
+        p1HandDisplay.classList.add('border-emerald-500', 'scale-110');
+        const p1Name = STATE.mode === 'com' ? 'あなた' : 'Player 1';
+        arenaAnnouncement.innerHTML = `<span class="font-title text-3xl text-emerald-400">${p1Name}の勝ち！</span>`;
+        playWinSound();
+        if (STATE.rule === 'hp') STATE.p2.hp -= dmg;
+        else STATE.p1.score += dmg;
+      } else {
+        p2HandDisplay.classList.add('border-pink-500', 'scale-110');
+        const p2Name = STATE.mode === 'com' ? 'COM' : 'Player 2';
+        arenaAnnouncement.innerHTML = `<span class="font-title text-3xl text-pink-400">${p2Name}の勝ち！</span>`;
+        if (STATE.rule === 'hp') STATE.p1.hp -= dmg;
+        else STATE.p2.score += dmg;
+      }
+
+      renderStatus();
+
+      // 試合決着チェック
+      if (checkMatchOver()) return;
+
+      // 次のラウンドへボタン表示
+      nextRoundWrapper.classList.remove('hidden');
+    }
+
+    document.getElementById('btn-next-round').addEventListener('click', () => {
+      playTapSound();
+      startRound();
+    });
+
+    /* --- 決着チェック --- */
+    function checkMatchOver() {
+      let isOver = false;
+      let winner = '';
+
+      if (STATE.rule === 'single') {
+        if (STATE.roundState === 'judged' && p1HandDisplay.textContent !== p2HandDisplay.textContent) {
+          isOver = true;
+          winner = STATE.p1.score > 0 ? (STATE.mode === 'com' ? 'あなた' : 'Player 1') : (STATE.mode === 'com' ? 'COM' : 'Player 2');
+        }
+      } else if (STATE.rule === 'best3') {
+        if (STATE.p1.score >= 3) { isOver = true; winner = STATE.mode === 'com' ? 'あなた' : 'Player 1'; }
+        if (STATE.p2.score >= 3) { isOver = true; winner = STATE.mode === 'com' ? 'COM' : 'Player 2'; }
+      } else if (STATE.rule === 'hp') {
+        if (STATE.p1.hp <= 0) { isOver = true; winner = STATE.mode === 'com' ? 'COM' : 'Player 2'; }
+        if (STATE.p2.hp <= 0) { isOver = true; winner = STATE.mode === 'com' ? 'あなた' : 'Player 1'; }
+      }
+
+      if (isOver) {
+        setTimeout(() => {
+          document.getElementById('match-winner-title').textContent = `${winner}の完全勝利！`;
+          matchOverModal.classList.remove('hidden');
+        }, 800);
+        return true;
+      }
+      return false;
+    }
+
+    // 初期化実行
+    initMatch();
+  </script>
+</body>
+</html>
