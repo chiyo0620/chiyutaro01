@@ -17,7 +17,7 @@
     .font-title {
       font-family: 'Mochiy Pop One', cursive;
     }
-    /* ネオン輝きアニメーション */
+    /* ネオン発光アニメーション */
     @keyframes neon-glow {
       0%, 100% {
         text-shadow: 0 0 10px rgba(236, 72, 153, 0.8), 0 0 20px rgba(236, 72, 153, 0.5), 0 0 40px rgba(168, 85, 247, 0.4);
@@ -29,63 +29,110 @@
     .neon-text {
       animation: neon-glow 2.5s infinite ease-in-out;
     }
-    /* 背景のグリッドアニメーション */
+    /* 背景グリッド */
     .bg-grid {
-      background-size: 40px 40px;
+      background-size: 32px 32px;
       background-image: 
         linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
     }
   </style>
 </head>
-<body class="bg-slate-950 text-white min-h-screen flex flex-col justify-between bg-grid relative overflow-x-hidden selection:bg-pink-500 selection:text-white">
+<body class="bg-slate-950 text-white min-h-screen flex flex-col justify-between bg-grid relative overflow-x-hidden overflow-y-auto selection:bg-pink-500 selection:text-white">
 
   <!-- 背景デコレーション光彩 -->
-  <div class="fixed top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-r from-pink-600/20 via-purple-600/30 to-indigo-600/20 blur-[120px] pointer-events-none rounded-full"></div>
+  <div class="fixed top-[-10%] left-1/2 -translate-x-1/2 w-[500px] h-[260px] bg-gradient-to-r from-pink-600/20 via-purple-600/30 to-indigo-600/20 blur-[100px] pointer-events-none rounded-full"></div>
 
   <!-- ヘッダーエリア -->
-  <header class="pt-12 pb-6 px-4 text-center relative z-10">
-    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/80 border border-purple-500/30 text-purple-300 text-xs sm:text-sm font-bold tracking-widest uppercase mb-4 shadow-lg shadow-purple-950/40 backdrop-blur-sm">
+  <header class="pt-8 pb-4 px-4 text-center relative z-10">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900/90 border border-purple-500/30 text-purple-300 text-xs font-bold tracking-widest uppercase mb-3 shadow-lg shadow-purple-950/40 backdrop-blur-sm">
       <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
       ARCADE PORTAL
     </div>
-    <h1 class="font-title text-4xl sm:text-6xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-300 to-indigo-300 neon-text">
-      ちゆたろうゲームセンター
+    <!-- スマホ時は「ちゆたろう」の直後に改行、PC/タブレットでは1行 -->
+    <h1 class="font-title text-3xl sm:text-5xl md:text-6xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-300 to-indigo-300 neon-text leading-tight">
+      ちゆたろう<br class="sm:hidden">ゲームセンター
     </h1>
-    <p class="text-slate-400 mt-3 text-sm sm:text-base font-bold">
+    <p class="text-slate-400 mt-2 text-xs sm:text-sm font-bold">
       タップまたはクリックしてゲームをはじめよう！
     </p>
   </header>
 
   <!-- ゲームセレクトエリア -->
-  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-8 relative z-10 flex flex-col justify-center">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-4 sm:py-6 relative z-10 flex flex-col justify-center">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
 
-      <!-- GAME 1: 完璧な円を描け！ -->
+      <!-- GAME 01: 完璧な円を描け！ -->
       <a href="game1.html" 
-         class="group relative block bg-slate-900/90 border-2 border-cyan-500/40 hover:border-cyan-400 rounded-3xl p-6 sm:p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_35px_rgba(6,182,212,0.4)] backdrop-blur-md overflow-hidden">
-        <!-- カード内装飾グラデーション -->
-        <div class="absolute -right-12 -top-12 w-40 h-40 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all"></div>
+         class="group relative block bg-slate-900/90 border-2 border-cyan-500/40 hover:border-cyan-400 rounded-3xl p-5 sm:p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(6,182,212,0.35)] backdrop-blur-md overflow-hidden">
+        <div class="absolute -right-10 -top-10 w-36 h-36 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all"></div>
         
-        <div class="flex items-center justify-between mb-4">
-          <span class="px-3 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-black tracking-wider uppercase">
+        <div class="flex items-center justify-between mb-3">
+          <span class="px-2.5 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-black tracking-wider uppercase">
             GAME 01
           </span>
           <span class="text-2xl group-hover:scale-125 transition-transform duration-300">🎯</span>
         </div>
 
-        <div class="my-4 text-center">
-          <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-cyan-950/60 border border-cyan-500/40 flex items-center justify-center text-4xl shadow-inner group-hover:rotate-6 transition-transform">
+        <div class="my-3 text-center">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-2xl bg-cyan-950/60 border border-cyan-500/40 flex items-center justify-center text-3xl sm:text-4xl shadow-inner group-hover:rotate-6 transition-transform">
             ⭕
           </div>
-          <h2 class="text-2xl sm:text-3xl font-black text-cyan-100 group-hover:text-cyan-300 transition-colors">
+          <h2 class="text-xl sm:text-2xl font-black text-cyan-100 group-hover:text-cyan-300 transition-colors">
             完璧な円を描け！
           </h2>
-          <p class="text-slate-400 text-xs sm:text-sm mt-2 line-clamp-2">
+          <p class="text-slate-400 text-xs mt-1.5 line-clamp-2">
             フリーハンドで真円を目指せ！美しさと丸みを極限まで追求するスコアアタックゲーム。
           </p>
         </div>
 
-        <div class="mt-6 flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-black text-base shadow-lg shadow-cyan-950/50 group-hover:from-cyan-500 group-hover:to-blue-500 transition-all">
+        <div class="mt-4 flex items-center justify-center gap-2 py-3 px-5 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-black text-sm sm:text-base shadow-lg shadow-cyan-950/50 group-hover:from-cyan-500 group-hover:to-blue-500 transition-all">
           <span>プレイする</span>
-          <svg class="w-5 h-5 group-hover:
+          <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+          </svg>
+        </div>
+      </a>
+
+      <!-- GAME 02: じゃんけんバトル ARENA -->
+      <a href="game2.html" 
+         class="group relative block bg-slate-900/90 border-2 border-pink-500/40 hover:border-pink-400 rounded-3xl p-5 sm:p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(236,72,153,0.35)] backdrop-blur-md overflow-hidden">
+        <div class="absolute -right-10 -top-10 w-36 h-36 bg-pink-500/10 rounded-full blur-2xl group-hover:bg-pink-500/20 transition-all"></div>
+        
+        <div class="flex items-center justify-between mb-3">
+          <span class="px-2.5 py-0.5 rounded-lg bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[11px] font-black tracking-wider uppercase">
+            GAME 02
+          </span>
+          <span class="text-2xl group-hover:scale-125 transition-transform duration-300">🔥</span>
+        </div>
+
+        <div class="my-3 text-center">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-2xl bg-pink-950/60 border border-pink-500/40 flex items-center justify-center text-3xl sm:text-4xl shadow-inner group-hover:-rotate-6 transition-transform">
+            ✊✌️🖐️
+          </div>
+          <h2 class="text-xl sm:text-2xl font-black text-pink-100 group-hover:text-pink-300 transition-colors">
+            じゃんけんバトル ARENA
+          </h2>
+          <p class="text-slate-400 text-xs mt-1.5 line-clamp-2">
+            AI対戦＆2人プレイ対応！HPゲージ・手札制・必殺技を備えた白熱のじゃんけん心理戦。
+          </p>
+        </div>
+
+        <div class="mt-4 flex items-center justify-center gap-2 py-3 px-5 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 text-white font-black text-sm sm:text-base shadow-lg shadow-pink-950/50 group-hover:from-pink-500 group-hover:to-rose-500 transition-all">
+          <span>プレイする</span>
+          <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+          </svg>
+        </div>
+      </a>
+
+    </div>
+  </main>
+
+  <!-- フッター -->
+  <footer class="py-4 text-center text-slate-500 text-xs relative z-10">
+    <p>© ちゆたろうゲームセンター All Rights Reserved.</p>
+  </footer>
+
+</body>
+</html>
