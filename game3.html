@@ -7,6 +7,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet">
   <style>
+    *, *::before, *::after {
+      -webkit-tap-highlight-color: transparent;
+    }
     body { font-family: 'Zen Maru Gothic', sans-serif; user-select: none; }
     .font-title { font-family: 'Mochiy Pop One', cursive; }
     .playing-animation {
@@ -16,12 +19,15 @@
       from { transform: translateY(0) scale(1); }
       to { transform: translateY(-10px) scale(1.1); text-shadow: 0 0 15px rgba(250, 204, 21, 0.8); }
     }
-    .instrument-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-    .instrument-btn:active { transform: scale(0.95); }
+    .instrument-btn { transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
+    .instrument-btn:active:not(:disabled) { transform: scale(0.94); }
   </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex flex-col overflow-x-hidden selection:bg-purple-500 selection:text-white relative">
   
+  <!-- 動的生成されるTailwindクラスをCDNに認識させるためのダミー要素（画面には表示されません） -->
+  <div class="hidden bg-gradient-to-b from-zinc-700 to-zinc-900 from-cyan-500 to-blue-600 from-pink-500 to-rose-600 from-amber-600 to-orange-700 from-yellow-400 to-amber-500 from-orange-400 to-red-500 hover:ring-4 hover:ring-white/30"></div>
+
   <!-- 背景装飾 -->
   <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
     <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-600/20 rounded-full blur-[100px]"></div>
@@ -61,16 +67,19 @@
     <!-- 選択肢エリア -->
     <div class="w-full">
       <h3 class="text-center text-sm font-bold text-slate-300 mb-3 border-b border-slate-800 pb-2">楽器の選択肢</h3>
-      <div id="choicesContainer" class="grid grid-cols-2 gap-3 sm:gap-4">
-        <!-- JSでボタンが生成されます -->
+      <div id="choicesContainer" class="grid grid-cols-2 gap-3 sm:gap-4 min-h-[150px]">
+        <!-- 読み込み中のフォールバック表示 -->
+        <div class="col-span-2 text-center py-8 text-xs text-slate-500 font-bold" id="loadingText">
+          ゲームを準備中...<br>（表示されない場合は再読み込みしてください）
+        </div>
       </div>
     </div>
 
   </main>
 
   <!-- 結果発表モーダル -->
-  <div id="resultModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border-2 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl transform transition-all scale-95" id="resultModalBox">
+  <div id="resultModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-slate-900 border-2 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl transform scale-95 transition-transform duration-300" id="resultModalBox">
       <div id="resultIcon" class="text-6xl mb-2">⭕</div>
       <h2 id="resultTitle" class="font-title text-3xl font-black mb-2">正解！</h2>
       <p id="resultDesc" class="text-sm font-bold text-slate-300 mb-6">正解は「ピアノ」でした！</p>
@@ -82,249 +91,314 @@
   </div>
 
   <script>
-    /* ----------------------------------
-       Web Audio API - 楽器の合成エンジン
-    ---------------------------------- */
-    let audioCtx = null;
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      return audioCtx;
-    }
+    // DOMの読み込みが完了してから確実に処理を開始する
+    document.addEventListener('DOMContentLoaded', () => {
 
-    const INSTRUMENTS = {
-      piano: { name: 'ピアノ', icon: '🎹', color: 'from-zinc-700 to-zinc-900' },
-      flute: { name: 'フルート', icon: '🎵', color: 'from-cyan-500 to-blue-600' },
-      synth: { name: '8bitシンセ', icon: '👾', color: 'from-pink-500 to-rose-600' },
-      organ: { name: 'オルガン', icon: '⛪', color: 'from-amber-600 to-orange-700' },
-      bell: { name: 'ベル', icon: '🔔', color: 'from-yellow-400 to-amber-500' },
-      brass: { name: 'ブラス', icon: '🎺', color: 'from-orange-400 to-red-500' }
-    };
+      /* ----------------------------------
+         Web Audio API - 楽器の合成エンジン
+      ---------------------------------- */
+      let audioCtx = null;
+      let isAudioUnlocked = false;
 
-    // 音階(MIDIノート番号)を周波数に変換
-    function m2f(note) { return 440 * Math.pow(2, (note - 69) / 12); }
+      function initAudio() {
+        if (!audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) {
+            alert("お使いのブラウザはWeb Audio APIに対応していません。");
+            return null;
+          }
+          audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        return audioCtx;
+      }
 
-    // 単音を鳴らす関数
-    function playTone(instrumentId, note, startTime, duration) {
-      const ctx = audioCtx;
-      const freq = m2f(note);
-      
-      if (instrumentId === 'piano') {
+      // iOSなどの無音ロック解除用
+      function unlockAudio() {
+        if (isAudioUnlocked) return;
+        const ctx = initAudio();
+        if (!ctx) return;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        // 減衰の早いエンベロープ（ピアノ風のアタック感）
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.8, startTime + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(startTime); osc.stop(startTime + duration);
-      } 
-      else if (instrumentId === 'flute') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        // アタックとリリースが少しゆっくり
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.5, startTime + 0.1);
-        gain.gain.setValueAtTime(0.5, startTime + duration - 0.1);
-        gain.gain.linearRampToValueAtTime(0, startTime + duration);
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(startTime); osc.stop(startTime + duration);
+        gain.gain.value = 0; // 無音
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(0);
+        osc.stop(ctx.currentTime + 0.001);
+        isAudioUnlocked = true;
       }
-      else if (instrumentId === 'synth') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'square';
-        osc.frequency.value = freq;
-        // ファミコン風のプチッとした音
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.15, startTime + 0.05);
-        gain.gain.setValueAtTime(0.15, startTime + duration - 0.05);
-        gain.gain.linearRampToValueAtTime(0, startTime + duration);
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(startTime); osc.stop(startTime + duration);
-      }
-      else if (instrumentId === 'organ') {
-        // オルガンは基本波＋オクターブ上の音を重ねる
-        const freqs = [freq, freq * 2, freq * 3];
-        freqs.forEach((f, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = f;
-          gain.gain.setValueAtTime(0, startTime);
-          gain.gain.linearRampToValueAtTime(0.2 / (i+1), startTime + 0.05);
-          gain.gain.setValueAtTime(0.2 / (i+1), startTime + duration - 0.05);
-          gain.gain.linearRampToValueAtTime(0, startTime + duration);
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.start(startTime); osc.stop(startTime + duration);
-        });
-      }
-      else if (instrumentId === 'bell') {
-        // ベルは非整数倍音を重ねて急速に減衰させる
-        const freqs = [freq, freq * 2.76, freq * 5.4, freq * 8.9];
-        freqs.forEach(f => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = f;
-          gain.gain.setValueAtTime(0, startTime);
-          gain.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
-          gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 1.5);
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.start(startTime); osc.stop(startTime + duration * 1.5);
-        });
-      }
-      else if (instrumentId === 'brass') {
-        // ブラスはノコギリ波＋ローパスフィルターの開閉
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        const filter = ctx.createBiquadFilter();
-        osc.type = 'sawtooth';
-        osc.frequency.value = freq;
+
+      const INSTRUMENTS = {
+        piano: { name: 'ピアノ', icon: '🎹', color: 'from-zinc-700 to-zinc-900' },
+        flute: { name: 'フルート', icon: '🎵', color: 'from-cyan-500 to-blue-600' },
+        synth: { name: '8bitシンセ', icon: '👾', color: 'from-pink-500 to-rose-600' },
+        organ: { name: 'オルガン', icon: '⛪', color: 'from-amber-600 to-orange-700' },
+        bell: { name: 'ベル', icon: '🔔', color: 'from-yellow-400 to-amber-500' },
+        brass: { name: 'ブラス', icon: '🎺', color: 'from-orange-400 to-red-500' }
+      };
+
+      // 音階(MIDIノート番号)を周波数に変換
+      function m2f(note) { return 440 * Math.pow(2, (note - 69) / 12); }
+
+      // 単音を鳴らす関数
+      function playTone(instrumentId, note, startTime, duration) {
+        const ctx = audioCtx;
+        if (!ctx) return;
+        const freq = m2f(note);
         
-        filter.type = 'lowpass';
-        filter.Q.value = 2;
-        // フィルターを時間で閉じる（「パーゥ」という音になる）
-        filter.frequency.setValueAtTime(freq * 8, startTime);
-        filter.frequency.exponentialRampToValueAtTime(freq, startTime + 0.3);
-
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
-        gain.gain.setValueAtTime(0.3, startTime + duration - 0.1);
-        gain.gain.linearRampToValueAtTime(0, startTime + duration);
-
-        osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
-        osc.start(startTime); osc.stop(startTime + duration);
+        try {
+          if (instrumentId === 'piano') {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.8, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(startTime); osc.stop(startTime + duration);
+          } 
+          else if (instrumentId === 'flute') {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.5, startTime + 0.1);
+            gain.gain.setValueAtTime(0.5, startTime + duration - 0.1);
+            gain.gain.linearRampToValueAtTime(0, startTime + duration);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(startTime); osc.stop(startTime + duration);
+          }
+          else if (instrumentId === 'synth') {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.15, startTime + 0.05);
+            gain.gain.setValueAtTime(0.15, startTime + duration - 0.05);
+            gain.gain.linearRampToValueAtTime(0, startTime + duration);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(startTime); osc.stop(startTime + duration);
+          }
+          else if (instrumentId === 'organ') {
+            const freqs = [freq, freq * 2, freq * 3];
+            freqs.forEach((f, i) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.value = f;
+              gain.gain.setValueAtTime(0, startTime);
+              gain.gain.linearRampToValueAtTime(0.2 / (i+1), startTime + 0.05);
+              gain.gain.setValueAtTime(0.2 / (i+1), Math.max(startTime + 0.05, startTime + duration - 0.05));
+              gain.gain.linearRampToValueAtTime(0, startTime + duration);
+              osc.connect(gain); gain.connect(ctx.destination);
+              osc.start(startTime); osc.stop(startTime + duration);
+            });
+          }
+          else if (instrumentId === 'bell') {
+            const freqs = [freq, freq * 2.76, freq * 5.4, freq * 8.9];
+            freqs.forEach(f => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.value = f;
+              gain.gain.setValueAtTime(0, startTime);
+              gain.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+              gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 1.5);
+              osc.connect(gain); gain.connect(ctx.destination);
+              osc.start(startTime); osc.stop(startTime + duration * 1.5);
+            });
+          }
+          else if (instrumentId === 'brass') {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const filter = ctx.createBiquadFilter();
+            osc.type = 'sawtooth';
+            osc.frequency.value = freq;
+            filter.type = 'lowpass';
+            filter.Q.value = 2;
+            filter.frequency.setValueAtTime(freq * 8, startTime);
+            filter.frequency.exponentialRampToValueAtTime(freq, startTime + 0.3);
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+            gain.gain.setValueAtTime(0.3, Math.max(startTime + 0.05, startTime + duration - 0.1));
+            gain.gain.linearRampToValueAtTime(0, startTime + duration);
+            osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+            osc.start(startTime); osc.stop(startTime + duration);
+          }
+        } catch (e) {
+          console.warn("Audio generation skipped due to timing context", e);
+        }
       }
-    }
 
-    // メロディー（Cペンタトニックスケール等からランダムなフレーズ）を生成して再生
-    let isPlaying = false;
-    function playRandomMelody(instrumentId) {
-      if (isPlaying) return;
-      initAudio();
-      isPlaying = true;
-      
-      const musicIcon = document.getElementById('musicIcon');
-      musicIcon.classList.remove('grayscale', 'opacity-50');
-      musicIcon.classList.add('playing-animation');
-      document.getElementById('playStatusText').textContent = '♪ 再生中...';
+      let isPlaying = false;
+      function playRandomMelody(instrumentId) {
+        if (isPlaying) return;
+        unlockAudio(); // 初回のみロック解除
+        const ctx = initAudio();
+        if (!ctx) return;
+        
+        isPlaying = true;
+        const musicIcon = document.getElementById('musicIcon');
+        musicIcon.classList.remove('grayscale', 'opacity-50');
+        musicIcon.classList.add('playing-animation');
+        document.getElementById('playStatusText').textContent = '♪ 再生中...';
 
-      // Cメジャーペンタトニック (C4, D4, E4, G4, A4, C5)
-      const scale = [60, 62, 64, 67, 69, 72]; 
-      const melodyLength = 5; // 5音フレーズ
-      let currentTime = audioCtx.currentTime + 0.1;
+        // Cメジャーペンタトニックからランダムな5音フレーズ
+        const scale = [60, 62, 64, 67, 69, 72]; 
+        const melodyLength = 5;
+        let playTime = ctx.currentTime + 0.05; // わずかに遅らせて確実な再生を担保
 
-      for (let i = 0; i < melodyLength; i++) {
-        const note = scale[Math.floor(Math.random() * scale.length)];
-        const duration = 0.3; // 1音の長さ
-        playTone(instrumentId, note, currentTime, duration);
-        currentTime += duration + 0.1; // 音と音の間隔
+        for (let i = 0; i < melodyLength; i++) {
+          const note = scale[Math.floor(Math.random() * scale.length)];
+          const duration = 0.3;
+          playTone(instrumentId, note, playTime, duration);
+          playTime += duration + 0.1;
+        }
+
+        setTimeout(() => {
+          isPlaying = false;
+          musicIcon.classList.add('grayscale', 'opacity-50');
+          musicIcon.classList.remove('playing-animation');
+          document.getElementById('playStatusText').textContent = 'もう一度聴けます';
+        }, (melodyLength * 0.4 + 0.2) * 1000);
       }
 
-      // 再生終了後のUI戻し
-      setTimeout(() => {
-        isPlaying = false;
-        musicIcon.classList.add('grayscale', 'opacity-50');
-        musicIcon.classList.remove('playing-animation');
-        document.getElementById('playStatusText').textContent = 'もう一度聴けます';
-      }, (melodyLength * 0.4 + 0.2) * 1000);
-    }
+      /* ----------------------------------
+         ゲームの進行ロジック
+      ---------------------------------- */
+      const LEVEL_CONFIG = [
+        ['piano', 'flute', 'synth'],
+        ['piano', 'flute', 'synth', 'organ'],
+        ['piano', 'flute', 'synth', 'organ', 'bell'],
+        ['piano', 'flute', 'synth', 'organ', 'bell', 'brass']
+      ];
 
-    /* ----------------------------------
-       ゲームの進行ロジック
-    ---------------------------------- */
-    const LEVEL_CONFIG = [
-      ['piano', 'flute', 'synth'],                          // Lv1: 3択
-      ['piano', 'flute', 'synth', 'organ'],                 // Lv2: 4択
-      ['piano', 'flute', 'synth', 'organ', 'bell'],         // Lv3: 5択
-      ['piano', 'flute', 'synth', 'organ', 'bell', 'brass'] // Lv4: 6択
-    ];
+      let currentLevel = 1;
+      let score = 0;
+      let currentAnswer = '';
+      let hasPlayedInRound = false;
 
-    let currentLevel = 1;
-    let score = 0;
-    let currentAnswer = '';
-    let hasPlayedInRound = false;
+      const playBtn = document.getElementById('playBtn');
+      const choicesContainer = document.getElementById('choicesContainer');
+      const resultModal = document.getElementById('resultModal');
+      const resultModalBox = document.getElementById('resultModalBox');
+      const nextBtn = document.getElementById('nextBtn');
 
-    const playBtn = document.getElementById('playBtn');
-    const choicesContainer = document.getElementById('choicesContainer');
-    const resultModal = document.getElementById('resultModal');
-    const resultModalBox = document.getElementById('resultModalBox');
-    const nextBtn = document.getElementById('nextBtn');
+      function startRound() {
+        hasPlayedInRound = false;
+        document.getElementById('playStatusText').textContent = 'ボタンを押して音声を再生';
+        
+        const poolIndex = Math.min(currentLevel - 1, LEVEL_CONFIG.length - 1);
+        const availableInstruments = LEVEL_CONFIG[poolIndex];
+        currentAnswer = availableInstruments[Math.floor(Math.random() * availableInstruments.length)];
+        
+        choicesContainer.innerHTML = ''; // 読み込み中テキストを削除して空にする
+        
+        availableInstruments.forEach(instId => {
+          const instInfo = INSTRUMENTS[instId];
+          const btn = document.createElement('button');
+          btn.className = `instrument-btn p-4 rounded-2xl bg-gradient-to-b ${instInfo.color} border border-white/10 shadow-lg flex flex-col items-center justify-center opacity-50 cursor-not-allowed`;
+          btn.innerHTML = `
+            <span class="text-3xl mb-2">${instInfo.icon}</span>
+            <span class="text-sm font-bold text-white">${instInfo.name}</span>
+          `;
+          btn.disabled = true;
+          
+          btn.addEventListener('click', () => {
+            if (!btn.disabled && !isPlaying) checkAnswer(instId);
+          });
+          
+          choicesContainer.appendChild(btn);
+        });
+        
+        updateStatus();
+      }
 
-    function startRound() {
-      hasPlayedInRound = false;
-      document.getElementById('playStatusText').textContent = 'ボタンを押して音声を再生';
-      
-      // レベルごとの楽器プールを取得（最大レベルは配列の最後）
-      const poolIndex = Math.min(currentLevel - 1, LEVEL_CONFIG.length - 1);
-      const availableInstruments = LEVEL_CONFIG[poolIndex];
-      
-      // 正解をランダムに決定
-      currentAnswer = availableInstruments[Math.floor(Math.random() * availableInstruments.length)];
-      
-      // 選択肢UIを生成
-      choicesContainer.innerHTML = '';
-      availableInstruments.forEach(instId => {
-        const instInfo = INSTRUMENTS[instId];
-        const btn = document.createElement('button');
-        btn.className = `instrument-btn p-4 rounded-2xl bg-gradient-to-b ${instInfo.color} border border-white/10 shadow-lg flex flex-col items-center justify-center opacity-50 cursor-not-allowed`;
-        btn.innerHTML = `
-          <span class="text-3xl mb-2">${instInfo.icon}</span>
-          <span class="text-sm font-bold">${instInfo.name}</span>
-        `;
-        // 最初はクリック不可（音を聴いてから）
-        btn.disabled = true;
-        btn.onclick = () => checkAnswer(instId);
-        choicesContainer.appendChild(btn);
+      playBtn.addEventListener('click', () => {
+        playRandomMelody(currentAnswer);
+        if (!hasPlayedInRound) {
+          hasPlayedInRound = true;
+          const btns = choicesContainer.querySelectorAll('.instrument-btn');
+          btns.forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            btn.classList.add('hover:ring-4', 'hover:ring-white/30');
+          });
+        }
       });
-      
-      updateStatus();
-    }
 
-    // 再生ボタンクリック
-    playBtn.addEventListener('click', () => {
-      playRandomMelody(currentAnswer);
-      if (!hasPlayedInRound) {
-        hasPlayedInRound = true;
-        // 音を聴いたら選択肢を有効化
-        const btns = choicesContainer.querySelectorAll('.instrument-btn');
-        btns.forEach(btn => {
-          btn.disabled = false;
-          btn.classList.remove('opacity-50', 'cursor-not-allowed');
-          btn.classList.add('hover:ring-4', 'hover:ring-white/30');
-        });
+      function checkAnswer(selectedId) {
+        if (isPlaying) return;
+
+        const isCorrect = (selectedId === currentAnswer);
+        const answerInfo = INSTRUMENTS[currentAnswer];
+
+        const rIcon = document.getElementById('resultIcon');
+        const rTitle = document.getElementById('resultTitle');
+        const rDesc = document.getElementById('resultDesc');
+        
+        // 結果表示前にオーディオコンテキストを確実にする
+        const ctx = initAudio();
+        
+        if (isCorrect) {
+          if (ctx) {
+            playTone('bell', 72, ctx.currentTime, 0.5);
+            playTone('bell', 76, ctx.currentTime + 0.1, 0.5);
+          }
+          
+          score += 100 * currentLevel;
+          currentLevel++;
+          
+          rIcon.textContent = '⭕';
+          rTitle.textContent = '大正解！';
+          rTitle.className = 'font-title text-3xl font-black mb-2 text-emerald-400';
+          rDesc.textContent = `正解は「${answerInfo.icon} ${answerInfo.name}」でした！`;
+          resultModalBox.className = 'bg-slate-900 border-2 border-emerald-500 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl transform scale-100 transition-transform duration-300';
+          nextBtn.className = 'w-full py-4 rounded-xl font-black text-lg text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg active:scale-95 transition-all mt-4';
+          nextBtn.textContent = '次のレベルへ ➔';
+        } else {
+          if (ctx) {
+            playTone('synth', 55, ctx.currentTime, 0.3);
+            playTone('synth', 54, ctx.currentTime + 0.3, 0.5);
+          }
+          
+          rIcon.textContent = '❌';
+          rTitle.textContent = 'ザンネン...';
+          rTitle.className = 'font-title text-3xl font-black mb-2 text-rose-400';
+          rDesc.innerHTML = `正解は「${answerInfo.icon} ${answerInfo.name}」でした。<br><span class="text-xs text-slate-400">レベル1からやり直しです...</span>`;
+          resultModalBox.className = 'bg-slate-900 border-2 border-rose-500 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl transform scale-100 transition-transform duration-300';
+          nextBtn.className = 'w-full py-4 rounded-xl font-black text-lg text-white bg-rose-600 hover:bg-rose-500 shadow-lg active:scale-95 transition-all mt-4';
+          nextBtn.textContent = '最初からやり直す';
+          
+          currentLevel = 1;
+          score = 0;
+        }
+
+        resultModal.classList.remove('pointer-events-none');
+        resultModal.classList.add('opacity-100');
       }
+
+      nextBtn.addEventListener('click', () => {
+        resultModal.classList.remove('opacity-100');
+        resultModal.classList.add('pointer-events-none');
+        resultModalBox.classList.replace('scale-100', 'scale-95');
+        // 少し遅延させてから次のラウンドを描画（アニメーション都合）
+        setTimeout(startRound, 300);
+      });
+
+      function updateStatus() {
+        document.getElementById('levelDisplay').textContent = `LEVEL ${currentLevel}`;
+        document.getElementById('scoreDisplay').textContent = `SCORE: ${score}`;
+      }
+
+      // エラーが起きずにここまで到達したらゲーム開始
+      startRound();
     });
-
-    // 答え合わせ
-    function checkAnswer(selectedId) {
-      if (isPlaying) return; // 再生中は判定しない
-
-      const isCorrect = (selectedId === currentAnswer);
-      const answerInfo = INSTRUMENTS[currentAnswer];
-
-      const rIcon = document.getElementById('resultIcon');
-      const rTitle = document.getElementById('resultTitle');
-      const rDesc = document.getElementById('resultDesc');
-      
-      if (isCorrect) {
-        // 正解音
-        initAudio();
-        playTone('bell', 72, audioCtx.currentTime, 0.5); // C5
-        playTone('bell', 76, audioCtx.currentTime + 0.1, 0.5); // E5
-        
-        score += 100 * currentLevel;
-        currentLevel++;
-        
-        rIcon.textContent = '⭕';
-        rTitle.textContent = '大正解！';
-        rTitle.className = 'font-title text-3xl font-black mb-2 text-emerald-400';
-        rDesc.textContent = `正解は「${answerInfo.icon} ${answerInfo.name}」でした！`;
-        resultModalBox.className = 'bg-slate
+  </script>
+</body>
+</html>
