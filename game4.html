@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>不規則動詞 トリプル・ビート</title>
+<style>
+  body {
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+    background-color: #f0f4f8;
+    color: #333;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+    user-select: none;
+  }
+  h1 { font-size: 20px; color: #4a90e2; }
+  #game-container {
+    max-width: 400px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  #combo {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ff9800;
+    margin-bottom: 10px;
+    height: 24px;
+  }
+  #question {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  #instruction {
+    font-size: 16px;
+    color: #e91e63;
+    margin-bottom: 20px;
+    font-weight: bold;
+  }
+  #progress {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #ccc;
+  }
+  .dot.active { background-color: #4a90e2; }
+  .dot.done { background-color: #4caf50; }
+  
+  #grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  button.option {
+    font-size: 18px;
+    padding: 15px 10px;
+    border: none;
+    border-radius: 8px;
+    background-color: #e3f2fd;
+    color: #1565c0;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.1s;
+    box-shadow: 0 2px 0 #bbdefb;
+  }
+  button.option:active {
+    transform: translateY(2px);
+    box-shadow: none;
+  }
+  button.option.correct {
+    background-color: #4caf50;
+    color: white;
+    box-shadow: 0 2px 0 #388e3c;
+  }
+  button.option.wrong {
+    background-color: #f44336;
+    color: white;
+    box-shadow: 0 2px 0 #d32f2f;
+  }
+  #start-screen {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255,0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+  }
+  #start-btn {
+    font-size: 20px;
+    padding: 15px 40px;
+    background-color: #4a90e2;
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #357abd;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <h1>不規則動詞 トリプル・ビート</h1>
+  <div id="combo">0 COMBO!</div>
+  <div id="question">を読み込み中...</div>
+  <div id="progress">
+    <div class="dot" id="dot0"></div>
+    <div class="dot" id="dot1"></div>
+    <div class="dot" id="dot2"></div>
+  </div>
+  <div id="instruction">原形 をタップ！</div>
+  <div id="grid"></div>
+</div>
+
+<div id="start-screen">
+  <h2>全56語マスターへ！</h2>
+  <p>「原形」→「過去形」→「過去分詞」<br>の順番でテンポよくタップしよう！</p>
+  <button id="start-btn">ゲームスタート♪</button>
+</div>
+
+<script>
+// プリント「タン、タン、タン♪ リズムで覚える 不規則変化動詞」の全56語
+const verbs = [
+  {m: "である・にいる", v1: "is, am / are", v2: "was / were", v3: "been"},
+  {m: "になる", v1: "become", v2: "became", v3: "become"},
+  {m: "を始める", v1: "begin", v2: "began", v3: "begun"},
+  {m: "を壊す", v1: "break", v2: "broke", v3: "broken"},
+  {m: "を持ってくる", v1: "bring", v2: "brought", v3: "brought"},
+  {m: "を立てる", v1: "build", v2: "built", v3: "built"},
+  {m: "を買う", v1: "buy", v2: "bought", v3: "bought"},
+  {m: "をつかまえる", v1: "catch", v2: "caught", v3: "caught"},
+  {m: "来る", v1: "come", v2: "came", v3: "come"},
+  {m: "をする", v1: "do", v2: "did", v3: "done"},
+  {m: "を描く", v1: "draw", v2: "drew", v3: "drawn"},
+  {m: "を飲む", v1: "drink", v2: "drank", v3: "drunk"},
+  {m: "を運転する", v1: "drive", v2: "drove", v3: "driven"},
+  {m: "を食べる (e)", v1: "eat", v2: "ate", v3: "eaten"},
+  {m: "落ちる", v1: "fall", v2: "fell", v3: "fallen"},
+  {m: "感じる", v1: "feel", v2: "felt", v3: "felt"},
+  {m: "を見つける", v1: "find", v2: "found", v3: "found"},
+  {m: "飛ぶ", v1: "fly", v2: "flew", v3: "flown"},
+  {m: "を忘れる", v1: "forget", v2: "forgot", v3: "forgot(ten)"},
+  {m: "を手に入れる", v1: "get", v2: "got", v3: "got(ten)"},
+  {m: "を与える", v1: "give", v2: "gave", v3: "given"},
+  {m: "行く", v1: "go", v2: "went", v3: "gone"},
+  {m: "成長する", v1: "grow", v2: "grew", v3: "grown"},
+  {m: "を持っている", v1: "have", v2: "had", v3: "had"},
+  {m: "が聞こえる", v1: "hear", v2: "heard", v3: "heard"},
+  {m: "を打つ", v1: "hit", v2: "hit", v3: "hit"},
+  {m: "を手に持つ", "v1": "hold", "v2": "held", "v3": "held"},
+  {m: "を持ち続ける", "v1": "keep", "v2": "kept", "v3": "kept"},
+  {m: "を知っている", "v1": "know", "v2": "knew", "v3": "known"},
+  {m: "出発する", "v1": "leave", "v2": "left", "v3": "left"},
+  {m: "横になる", "v1": "lie", "v2": "lay", "v3": "lain"},
+  {m: "を作る", "v1": "make", "v2": "made", "v3": "made"},
+  {m: "を意味する", "v1": "mean", "v2": "meant", "v3": "meant"},
+  {m: "と会う (m)", "v1": "meet", "v2": "met", "v3": "met"},
+  {m: "を置く", "v1": "put", "v2": "put", "v3": "put"},
+  {m: "を読む ※発音注意", v1: "read", v2: "read", v3: "read"},
+  {m: "に乗る", "v1": "ride", "v2": "rode", "v3": "ridden"},
+  {m: "走る", "v1": "run", "v2": "ran", "v3": "run"},
+  {m: "と言う(s)", "v1": "say", "v2": "said", "v3": "said"},
+  {m: "が見える", "v1": "see", "v2": "saw", "v3": "seen"},
+  {m: "を売る", "v1": "sell", "v2": "sold", "v3": "sold"},
+  {m: "を送る", "v1": "send", "v2": "sent", "v3": "sent"},
+  {m: "歌う", "v1": "sing", "v2": "sang", "v3": "sung"},
+  {m: "座る", "v1": "sit", "v2": "sat", "v3": "sat"},
+  {m: "を話す(s)", "v1": "speak", "v2": "spoke", "v3": "spoken"},
+  {m: "を過ごす", "v1": "spend", "v2": "spent", "v3": "spent"},
+  {m: "立つ・立っている", "v1": "stand", "v2": "stood", "v3": "stood"},
+  {m: "泳ぐ", "v1": "swim", "v2": "swam", "v3": "swum"},
+  {m: "を持っていく", "v1": "take", "v2": "took", "v3": "taken"},
+  {m: "を教える", "v1": "teach", "v2": "taught", "v3": "taught"},
+  {m: "に話す (t)", "v1": "tell", "v2": "told", "v3": "told"},
+  {m: "と思う", "v1": "think", "v2": "thought", "v3": "thought"},
+  {m: "を理解する", "v1": "understand", "v2": "understood", "v3": "understood"},
+  {m: "を着ている", "v1": "wear", "v2": "wore", "v3": "worn"},
+  {m: "勝つ", "v1": "win", "v2": "won", "v3": "won"},
+  {m: "を書く", "v1": "write", "v2": "wrote", "v3": "written"}
+];
+
+let currentWord;
+let step = 0; // 0:v1, 1:v2, 2:v3
+let combo = 0;
+let audioCtx;
+
+// 効果音の生成（Web Audio API）
+function playSound(type) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  if (type === 'correct') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime); // ラの音
+    osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+  } else if (type === 'wrong') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+  } else if (type === 'clear') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // ド
+    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // ミ
+    osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // ソ
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+  }
+}
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function nextQuestion() {
+  currentWord = verbs[Math.floor(Math.random() * verbs.length)];
+  step = 0;
+  updateUI();
+}
+
+function updateUI() {
+  document.getElementById('question').innerText = currentWord.m;
+  const inst = document.getElementById('instruction');
+  const forms = ['原形', '過去形', '過去分詞'];
+  inst.innerText = `${forms[step]} をタップ！`;
+
+  // 進捗ドットの更新
+  for (let i=0; i<3; i++) {
+    const dot = document.getElementById('dot'+i);
+    dot.className = 'dot';
+    if (i < step) dot.classList.add('done');
+    else if (i === step) dot.classList.add('active');
+  }
+
+  // 選択肢の生成（正解1つ + ダミー5つ）
+  const correctAns = step === 0 ? currentWord.v1 : (step === 1 ? currentWord.v2 : currentWord.v3);
+  let options = new Set([correctAns]);
+  
+  // ダミー選択肢をランダムに持ってくる
+  while(options.size < 6) {
+    const randomWord = verbs[Math.floor(Math.random() * verbs.length)];
+    const randomForm = [randomWord.v1, randomWord.v2, randomWord.v3][Math.floor(Math.random() * 3)];
+    options.add(randomForm);
+  }
+
+  const optionsArray = shuffle(Array.from(options));
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  optionsArray.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.innerText = opt;
+    btn.onclick = () => checkAnswer(opt, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function checkAnswer(selected, btnElement) {
+  const correctAns = step === 0 ? currentWord.v1 : (step === 1 ? currentWord.v2 : currentWord.v3);
+  
+  if (selected === correctAns) {
+    playSound('correct');
+    btnElement.classList.add('correct');
+    step++;
+    
+    if (step === 3) {
+      playSound('clear');
+      combo++;
+      document.getElementById('combo').innerText = `${combo} COMBO!`;
+      document.getElementById('combo').style.color = '#ff5722';
+      setTimeout(nextQuestion, 500);
+    } else {
+      setTimeout(updateUI, 200);
+    }
+  } else {
+    playSound('wrong');
+    btnElement.classList.add('wrong');
+    combo = 0;
+    document.getElementById('combo').innerText = `0 COMBO...`;
+    document.getElementById('combo').style.color = '#9e9e9e';
+    
+    // 間違えたら少し揺れるアニメーションを追加
+    btnElement.style.transform = 'translateX(-5px)';
+    setTimeout(() => btnElement.style.transform = 'translateX(5px)', 50);
+    setTimeout(() => btnElement.style.transform = 'translateX(0)', 100);
+    
+    // 間違えたら最初（原形）からやり直し
+    setTimeout(() => {
+      step = 0;
+      updateUI();
+    }, 400);
+  }
+}
+
+document.getElementById('start-btn').addEventListener('click', () => {
+  // ユーザー操作時にAudioContextを初期化
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  audioCtx = new AudioContext();
+  
+  document.getElementById('start-screen').style.display = 'none';
+  nextQuestion();
+});
+</script>
+
+</body>
+</html>
